@@ -73,7 +73,7 @@ Service boundaries are intentionally narrow:
 - Frontend: <http://localhost:8080>; health: `/health`.
 - Commerce API: proxied through `/api`; liveness/readiness: `/api/v1/health/live` and `/api/v1/health/ready`.
 - Interactive commerce API documentation: <http://localhost:8080/api/docs> when `API_DOCS_ENABLED=true` (the local default). Disable it in production-like environments.
-- Payment API: internal-only port `8000`; liveness/readiness use the same versioned health paths inside its container.
+- Payment API: internal-only port `8000`; liveness/readiness are `/health/live` and `/health/ready` inside its container. Readiness requires Redis and a recent queue-worker heartbeat.
 - MySQL and Redis are internal-only in the canonical Compose stack.
 
 Stop containers while preserving data with `docker compose down`. The following explicit reset is destructive and removes the database and product-media volumes:
@@ -107,11 +107,11 @@ Run each long-lived process in its own terminal:
 php services/commerce-api/artisan serve --host=127.0.0.1 --port=8000
 php services/commerce-api/artisan schedule:work
 php services/payment-api/artisan serve --host=127.0.0.1 --port=8001
-php services/payment-api/artisan queue:work redis --sleep=1 --tries=3 --timeout=30
+php services/payment-api/artisan queue:work redis --sleep=1 --tries=4 --timeout=10
 npm run dev
 ```
 
-The reservation schedule and payment behavior are placeholders until their implementation issues land.
+The reservation schedule remains a placeholder until its implementation issue lands. Payment provider state and delayed callbacks are intentionally ephemeral: restarting Redis or the payment container can lose idempotency records and pending callbacks.
 
 ## Checks
 
