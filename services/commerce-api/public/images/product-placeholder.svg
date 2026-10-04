@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" role="img" aria-labelledby="title description">
+  <title id="title">Product image placeholder</title>
+  <desc id="description">A neutral placeholder used when a product has no uploaded image.</desc>
+  <rect width="640" height="480" fill="#f1f5f9"/>
+  <path d="M176 128h288a32 32 0 0 1 32 32v160a32 32 0 0 1-32 32H176a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32Z" fill="#cbd5e1"/>
+  <circle cx="240" cy="208" r="32" fill="#94a3b8"/>
+  <path d="m176 320 88-80 56 48 56-64 88 96H176Z" fill="#94a3b8"/>
+</svg>

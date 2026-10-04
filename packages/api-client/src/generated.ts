@@ -914,8 +914,14 @@ export interface components {
             name: string;
             description: string;
             price: components["schemas"]["MoneyAmount"];
+            /**
+             * @description Confirms that price is the base unit price before tax.
+             * @constant
+             */
+            price_excludes_tax: true;
             currency: components["schemas"]["CurrencyCode"];
-            category: components["schemas"]["Category"];
+            /** @description Active category metadata, or null for the virtual Uncategorized grouping. */
+            category: components["schemas"]["Category"] | null;
             /** Format: uri-reference */
             image_url: string;
             in_stock: boolean;

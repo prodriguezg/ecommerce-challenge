@@ -75,6 +75,26 @@ class Product extends DomainModel
         return $this->hasMany(ReservationItem::class);
     }
 
+    /** @return HasMany<ReservationItem, $this> */
+    public function activeReservationItems(): HasMany
+    {
+        return $this->hasMany(ReservationItem::class)->whereHas(
+            'reservation',
+            fn ($query) => $query
+                ->where('status', 'active')
+                ->where('expires_at', '>', now()),
+        );
+    }
+
+    public function availableStock(): int
+    {
+        if ($this->trashed() || $this->inventory === null) {
+            return 0;
+        }
+
+        return max(0, $this->inventory->stock_on_hand - (int) ($this->reserved_quantity ?? 0));
+    }
+
     protected function casts(): array
     {
         return ['price' => 'decimal:4', 'weight_kg' => 'decimal:4'];
