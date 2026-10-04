@@ -7,7 +7,13 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "typescript": ">=5.9.0"
+  },
   "devDependencies": {
     "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
   }
 }

@@ -1,11 +1,16 @@
 import { Box, Chip, Container, Typography } from '@mui/material'
+import type { components } from '@ecommerce/api-client'
+
+type HealthStatus = components['schemas']['Health']['status']
 
 export default function App() {
+  const contractStatus: HealthStatus = 'ok'
+
   return (
     <Container component="main" maxWidth="md">
       <Box sx={{ py: { xs: 6, md: 12 } }}>
         <Box sx={{ alignItems: 'flex-start', display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Chip color="success" label="Foundation ready" />
+          <Chip color="success" data-api-status={contractStatus} label="Foundation ready" />
           <Typography component="h1" variant="h2">
             E-commerce challenge
           </Typography>

@@ -72,6 +72,7 @@ Service boundaries are intentionally narrow:
 
 - Frontend: <http://localhost:8080>; health: `/health`.
 - Commerce API: proxied through `/api`; liveness/readiness: `/api/v1/health/live` and `/api/v1/health/ready`.
+- Interactive commerce API documentation: <http://localhost:8080/api/docs> when `API_DOCS_ENABLED=true` (the local default). Disable it in production-like environments.
 - Payment API: internal-only port `8000`; liveness/readiness use the same versioned health paths inside its container.
 - MySQL and Redis are internal-only in the canonical Compose stack.
 
@@ -122,6 +123,16 @@ Install dependencies, then run all currently configured checks:
 ```
 
 `check.sh` validates both Composer projects, checks PHP formatting, runs both PHPUnit suites, lints/type-checks/tests/builds the npm workspaces, and validates the Compose model.
+
+The OpenAPI workflow is also available independently:
+
+```bash
+npm run openapi:check
+npm run api:generate
+npm run api:docs
+```
+
+`openapi:check` lints and validates both contracts, verifies their documented endpoint inventories and strict mutation schemas, regenerates the TypeScript client and interactive documentation, and fails on generated-output drift.
 
 ## Important demo constraints
 
