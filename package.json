@@ -1,0 +1,17 @@
+{
+  "name": "ecommerce-challenge",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "dev": "npm run dev --workspace @ecommerce/frontend",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=24.13.1",
+    "npm": ">=11.8.0"
+  }
+}
