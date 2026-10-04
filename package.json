@@ -1,17 +1,31 @@
 {
   "name": "ecommerce-challenge",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
+    "api:check": "npm run api:generate && git diff --exit-code -- packages/api-client/src/generated.ts services/commerce-api/public/api-docs.html",
+    "api:docs": "redocly preview-docs openapi/commerce-api.yaml",
+    "api:generate": "openapi-typescript openapi/commerce-api.yaml --output packages/api-client/src/generated.ts && redocly build-docs openapi/commerce-api.yaml --output services/commerce-api/public/api-docs.html && node scripts/normalize-generated.mjs",
     "build": "npm run build --workspaces --if-present",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "check": "npm run openapi:check && npm run lint && npm run typecheck && npm run test && npm run build",
     "dev": "npm run dev --workspace @ecommerce/frontend",
-    "lint": "npm run lint --workspaces --if-present",
+    "lint": "npm run openapi:lint && npm run lint --workspaces --if-present",
+    "openapi:check": "npm run openapi:lint && npm run openapi:validate && npm run api:check",
+    "openapi:lint": "redocly lint openapi/commerce-api.yaml openapi/payment-api.yaml",
+    "openapi:validate": "node scripts/check-openapi.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "engines": {
     "node": ">=24.13.1",
     "npm": ">=11.8.0"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.57.0",
+    "openapi-typescript": "7.13.0",
+    "yaml": "2.9.1"
   }
 }
