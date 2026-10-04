@@ -66,6 +66,8 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'show'])->name('shipping-methods.show');
             Route::put('/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])->name('shipping-methods.update');
             Route::delete('/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'destroy'])->name('shipping-methods.destroy');
+        });
+
         Route::middleware('role:customer')->group(function (): void {
             Route::get('/cart', [CartController::class, 'show'])->name('cart.show');
             Route::put('/cart/items/{product}', [CartController::class, 'setItem'])->name('cart.items.set');
