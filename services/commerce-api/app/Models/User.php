@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use LogicException;
 
 #[Fillable(['role', 'name', 'email', 'password_hash'])]
 #[Hidden(['password_hash', 'remember_token', 'normalized_email', 'admin_singleton'])]
@@ -32,6 +33,25 @@ class User extends Authenticatable
     public function getAuthPasswordName(): string
     {
         return 'password_hash';
+    }
+
+    public function isAdministrator(): bool
+    {
+        return $this->getRawOriginal('role') === UserRole::Admin->value;
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->getRawOriginal('role') === UserRole::Customer->value;
+    }
+
+    public function roleValue(): string
+    {
+        return match (true) {
+            $this->isAdministrator() => UserRole::Admin->value,
+            $this->isCustomer() => UserRole::Customer->value,
+            default => throw new LogicException('User role is invalid.'),
+        };
     }
 
     /** @return HasMany<Address, $this> */

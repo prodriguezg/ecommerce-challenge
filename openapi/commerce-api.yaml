@@ -53,7 +53,7 @@ paths:
     post:
       operationId: createInitialAdmin
       tags: [Setup]
-      requestBody: { $ref: '#/components/requestBodies/Register' }
+      requestBody: { $ref: '#/components/requestBodies/SetupAdmin' }
       responses:
         '201': { $ref: '#/components/responses/Principal' }
         '409': { $ref: '#/components/responses/Conflict' }
@@ -787,8 +787,13 @@ components:
             required: [email, password]
             properties:
               email: { type: string, format: email, maxLength: 254 }
-              password: { type: string, minLength: 8, maxLength: 255 }
+              password: { type: string, minLength: 10, maxLength: 255, pattern: '^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).+$' }
             additionalProperties: false
+    SetupAdmin:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SetupAdminInput' }
     Register:
       required: true
       content:
@@ -802,7 +807,7 @@ components:
             type: object
             required: [password]
             properties:
-              password: { type: string, minLength: 8, maxLength: 255 }
+              password: { type: string, minLength: 10, maxLength: 255, pattern: '^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).+$' }
             additionalProperties: false
     CartQuantity:
       required: true
@@ -1092,7 +1097,7 @@ components:
       additionalProperties: false
     Address:
       type: object
-      required: [name, line1, city, postal_code, country]
+      required: [name, line1, city, region, postal_code, country, phone]
       properties:
         name: { type: string, maxLength: 200 }
         line1: { type: string, maxLength: 200 }
@@ -1101,6 +1106,15 @@ components:
         region: { type: string, maxLength: 100 }
         postal_code: { type: string, maxLength: 32 }
         country: { type: string, pattern: '^[A-Z]{2}$' }
+        phone: { type: string, minLength: 1, maxLength: 32 }
+      additionalProperties: false
+    SetupAdminInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 10, maxLength: 255, pattern: '^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).+$' }
       additionalProperties: false
     RegistrationInput:
       type: object
@@ -1108,7 +1122,7 @@ components:
       properties:
         name: { type: string, minLength: 1, maxLength: 200 }
         email: { type: string, format: email, maxLength: 254 }
-        password: { type: string, minLength: 8, maxLength: 255 }
+        password: { type: string, minLength: 10, maxLength: 255, pattern: '^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).+$' }
         address: { $ref: '#/components/schemas/Address' }
       additionalProperties: false
     Principal:

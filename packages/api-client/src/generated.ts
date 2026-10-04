@@ -843,9 +843,16 @@ export interface components {
             line1: string;
             line2?: string;
             city: string;
-            region?: string;
+            region: string;
             postal_code: string;
             country: string;
+            phone: string;
+        };
+        SetupAdminInput: {
+            name: string;
+            /** Format: email */
+            email: string;
+            password: string;
         };
         RegistrationInput: {
             name: string;
@@ -1457,6 +1464,11 @@ export interface components {
                 };
             };
         };
+        SetupAdmin: {
+            content: {
+                "application/json": components["schemas"]["SetupAdminInput"];
+            };
+        };
         Register: {
             content: {
                 "application/json": components["schemas"]["RegistrationInput"];
@@ -1639,7 +1651,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: components["requestBodies"]["Register"];
+        requestBody: components["requestBodies"]["SetupAdmin"];
         responses: {
             201: components["responses"]["Principal"];
             409: components["responses"]["Conflict"];
