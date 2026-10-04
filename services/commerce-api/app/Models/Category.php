@@ -20,6 +20,7 @@ class Category extends DomainModel
         static::saving(function (Category $category): void {
             $category->name = Str::squish($category->name);
             $category->normalized_name = Str::lower($category->name);
+            $category->slug ??= Str::slug($category->name);
         });
     }
 

@@ -10,6 +10,7 @@ class ProblemDetails
     /**
      * @param  array<string, list<string>>  $errors
      * @param  array<string, mixed>  $headers
+     * @param  array<string, mixed>  $extensions
      */
     public static function response(
         Request $request,
@@ -19,6 +20,7 @@ class ProblemDetails
         string $code,
         array $errors = [],
         array $headers = [],
+        array $extensions = [],
     ): JsonResponse {
         $body = [
             'type' => rtrim((string) config('app.url'), '/').'/problems/'.$code,
@@ -32,6 +34,8 @@ class ProblemDetails
         if ($errors !== []) {
             $body['errors'] = $errors;
         }
+
+        $body = [...$body, ...$extensions];
 
         return response()->json(
             $body,

@@ -1,8 +1,14 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\CategoryController;
+use App\Http\Controllers\Api\V1\Admin\InventoryController;
+use App\Http\Controllers\Api\V1\Admin\ProductController;
+use App\Http\Controllers\Api\V1\Admin\ShippingMethodController;
+use App\Http\Controllers\Api\V1\Admin\TaxController;
 use App\Http\Controllers\Api\V1\AuthenticationController;
 use App\Http\Controllers\Api\V1\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\ProductImageController;
 use App\Http\Controllers\Api\V1\SetupController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,9 +23,41 @@ Route::prefix('v1')->group(function (): void {
 
     Route::post('/auth/login', [AuthenticationController::class, 'login'])->middleware('throttle:login')->name('auth.login');
     Route::post('/customers/register', [CustomerRegistrationController::class, 'create'])->middleware('throttle:registration')->name('customers.register');
+    Route::get('/products/{product}/image', ProductImageController::class)->name('products.image');
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/auth/logout', [AuthenticationController::class, 'logout'])->name('auth.logout');
         Route::get('/auth/me', [AuthenticationController::class, 'me'])->name('auth.me');
+
+        Route::prefix('admin')->middleware('role:admin')->name('admin.')->group(function (): void {
+            Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+            Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+            Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
+            Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+            Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+            Route::post('/products/{product}/image', [ProductController::class, 'replaceImage'])->name('products.image.replace');
+            Route::delete('/products/{product}/image', [ProductController::class, 'removeImage'])->name('products.image.remove');
+            Route::get('/products/{product}/inventory', [InventoryController::class, 'show'])->name('inventory.show');
+            Route::get('/products/{product}/inventory-adjustments', [InventoryController::class, 'index'])->name('inventory-adjustments.index');
+            Route::post('/products/{product}/inventory-adjustments', [InventoryController::class, 'store'])->name('inventory-adjustments.store');
+
+            Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+            Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+            Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
+            Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+            Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+            Route::get('/taxes', [TaxController::class, 'index'])->name('taxes.index');
+            Route::post('/taxes', [TaxController::class, 'store'])->name('taxes.store');
+            Route::get('/taxes/{tax}', [TaxController::class, 'show'])->name('taxes.show');
+            Route::put('/taxes/{tax}', [TaxController::class, 'update'])->name('taxes.update');
+            Route::delete('/taxes/{tax}', [TaxController::class, 'destroy'])->name('taxes.destroy');
+
+            Route::get('/shipping-methods', [ShippingMethodController::class, 'index'])->name('shipping-methods.index');
+            Route::post('/shipping-methods', [ShippingMethodController::class, 'store'])->name('shipping-methods.store');
+            Route::get('/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'show'])->name('shipping-methods.show');
+            Route::put('/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])->name('shipping-methods.update');
+            Route::delete('/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'destroy'])->name('shipping-methods.destroy');
+        });
     });
 });
