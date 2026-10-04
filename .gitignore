@@ -1,0 +1,10 @@
+.DS_Store
+.env
+*.log
+node_modules/
+apps/*/dist/
+*.tsbuildinfo
+services/*/.env
+services/*/database/*.sqlite
+services/*/storage/logs/*
+services/*/vendor/

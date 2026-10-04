@@ -1,0 +1,11 @@
+.git
+.github
+**/.env
+**/.phpunit.cache
+**/bootstrap/cache/*.php
+**/database/*.sqlite
+**/node_modules
+**/storage/logs/*
+**/vendor
+node_modules
+output

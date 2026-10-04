@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          coverage: none
+          php-version: '8.5'
+      - uses: actions/setup-node@v6
+        with:
+          cache: npm
+          node-version: '24.13.1'
+      - run: composer install --no-interaction --no-progress --working-dir=services/commerce-api
+      - run: composer install --no-interaction --no-progress --working-dir=services/payment-api
+      - run: npm ci
+      - run: cp .env.example .env
+      - run: ./scripts/check.sh
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: cp .env.example .env
+      - run: docker compose config --quiet
+      - run: docker compose build

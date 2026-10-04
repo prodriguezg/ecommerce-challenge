@@ -1,6 +1,6 @@
 # E-commerce Code Challenge
 
-This repository currently contains the first-pass product and software-design specifications for the e-commerce code challenge. The intended implementation is a Docker Compose-managed monorepo with a React storefront/admin UI, a Laravel commerce API, a Laravel mock payment API, MySQL, Redis for the mock payment queue, and a separate reservation-expiration worker.
+This repository contains the product and software-design specifications plus the runnable monorepo foundation for the e-commerce code challenge. Docker Compose starts a React frontend, Laravel commerce API, Laravel mock payment API and queue worker, MySQL, Redis, and a separate reservation worker. Business capabilities are being added incrementally through the linked GitHub issues.
 
 ## Challenge coverage
 
@@ -48,7 +48,7 @@ Only these exact simulation numbers will be accepted:
 
 They are test inputs only. Never enter real payment information.
 
-## Target technology stack
+## Technology stack
 
 - PHP and Laravel for the commerce and mock payment APIs
 - React, TypeScript, Vite, Material UI, React Router, TanStack Query, React Hook Form, and schema validation for the frontend
@@ -57,33 +57,71 @@ They are test inputs only. Never enter real payment information.
 - npm workspaces for JavaScript packages and Composer per Laravel application
 - PHPUnit, Vitest, Testing Library, Playwright, OpenAPI validation, Larastan/PHPStan, Laravel Pint, ESLint, and TypeScript checking
 
-The implementation should use the latest stable major versions available when development begins. Exact dependencies and container images must be pinned through lockfiles and image tags and recorded here when code is introduced.
+The foundation uses Laravel 13 on PHP 8.5, React 19, TypeScript 5.9, Vite 8, MySQL 8.4 LTS, Redis 8.4, Node.js 24, and Nginx 1.28. Application dependencies are pinned by Composer/npm lockfiles; container images use explicit version tags in the Dockerfiles and Compose definition.
 
-## Target reviewer workflow
-
-The implementation must make Docker Compose the canonical reviewer workflow. The intended interface is:
+## Reviewer workflow
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-Startup must migrate and seed only reference data: USD, a 10% Standard tax, Ground shipping at USD 5.00, and Air shipping at USD 15.00. It must not create users or import products. The first browser visit must direct the reviewer to first-run admin setup while no admin exists.
+Open <http://localhost:8080>. The current foundation page confirms that the stack is running. The commerce startup migrates and runs the application seeder; the current seeder is empty, so no users or products are created. Reference records and first-run setup are delivered by the database and authentication issues.
 
-The completed implementation must document:
+Service boundaries are intentionally narrow:
 
-- Service URLs, ports, and health checks
-- How to stop the stack and how to perform an explicit destructive data reset
-- How to change reservation timeout, worker interval, guest-link lifetime, payment delays, CSV limits, and order-number prefix/start value
-- How to change the four fake-card mappings if the implementation makes them configurable
-- How to upload the bundled sample CSV and download rejected rows
-- How to run all checks and tests
+- Frontend: <http://localhost:8080>; health: `/health`.
+- Commerce API: proxied through `/api`; liveness/readiness: `/api/v1/health/live` and `/api/v1/health/ready`.
+- Payment API: internal-only port `8000`; liveness/readiness use the same versioned health paths inside its container.
+- MySQL and Redis are internal-only in the canonical Compose stack.
 
-These commands describe the required end state; this first-pass repository is a specification package and does not yet claim a runnable application.
+Stop containers while preserving data with `docker compose down`. The following explicit reset is destructive and removes the database and product-media volumes:
 
-## Target host-native workflow
+```bash
+docker compose down --volumes
+```
 
-The implementation must also support running React and each Laravel application directly on the host while MySQL and Redis may remain containerized. Host-native setup must include dependency installation, environment files, migrations, seed data, API server, frontend dev server, reservation worker, payment API, and payment queue worker instructions.
+All local defaults live in `.env.example`. Copy it to `.env`, then change reservation, worker, guest-link, payment-delay, CSV, order-number, port, or local credential settings there before starting Compose. These defaults are intentionally unsuitable for production.
+
+## Host-native workflow
+
+Install PHP 8.5, Composer 2.9, Node.js 24, npm 11, and Docker. Start only the infrastructure, bound to loopback:
+
+```bash
+cp .env.example .env
+docker compose -f compose.yaml -f compose.host.yaml up -d mysql redis
+composer install --working-dir=services/commerce-api
+composer install --working-dir=services/payment-api
+npm install
+cp services/commerce-api/.env.example services/commerce-api/.env
+cp services/payment-api/.env.example services/payment-api/.env
+php services/commerce-api/artisan key:generate
+php services/payment-api/artisan key:generate
+php services/commerce-api/artisan migrate --seed
+```
+
+Run each long-lived process in its own terminal:
+
+```bash
+php services/commerce-api/artisan serve --host=127.0.0.1 --port=8000
+php services/commerce-api/artisan schedule:work
+php services/payment-api/artisan serve --host=127.0.0.1 --port=8001
+php services/payment-api/artisan queue:work redis --sleep=1 --tries=3 --timeout=30
+npm run dev
+```
+
+The reservation schedule and payment behavior are placeholders until their implementation issues land.
+
+## Checks
+
+Install dependencies, then run all currently configured checks:
+
+```bash
+./scripts/format.sh
+./scripts/check.sh
+```
+
+`check.sh` validates both Composer projects, checks PHP formatting, runs both PHPUnit suites, lints/type-checks/tests/builds the npm workspaces, and validates the Compose model.
 
 ## Important demo constraints
 
