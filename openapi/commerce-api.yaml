@@ -1193,15 +1193,20 @@ components:
       additionalProperties: false
     Product:
       type: object
-      required: [id, sku, name, description, price, currency, category, image_url, in_stock, version, created_at, updated_at]
+      required: [id, sku, name, description, price, price_excludes_tax, currency, category, image_url, in_stock, version, created_at, updated_at]
       properties:
         id: { $ref: '#/components/schemas/Ulid' }
         sku: { type: string }
         name: { type: string }
         description: { type: string }
         price: { $ref: '#/components/schemas/MoneyAmount' }
+        price_excludes_tax: { type: boolean, const: true, description: Confirms that price is the base unit price before tax. }
         currency: { $ref: '#/components/schemas/CurrencyCode' }
-        category: { $ref: '#/components/schemas/Category' }
+        category:
+          description: Active category metadata, or null for the virtual Uncategorized grouping.
+          oneOf:
+            - { $ref: '#/components/schemas/Category' }
+            - { type: 'null' }
         image_url: { type: string, format: uri-reference }
         in_stock: { type: boolean }
         version: { $ref: '#/components/schemas/Version' }
