@@ -95,6 +95,11 @@ services:
       CACHE_STORE: redis
       LOG_CHANNEL: stderr
       QUEUE_CONNECTION: redis
+      PAYMENT_CALLBACK_URL: http://commerce-api:8000/api/v1/payments/webhooks/mock
+      PAYMENT_LATE_SUCCESS_DELAY_SECONDS: ${PAYMENT_LATE_SUCCESS_DELAY_SECONDS:-150}
+      PAYMENT_NORMAL_DELAY_MAX_SECONDS: ${PAYMENT_NORMAL_DELAY_MAX_SECONDS:-8}
+      PAYMENT_NORMAL_DELAY_MIN_SECONDS: ${PAYMENT_NORMAL_DELAY_MIN_SECONDS:-2}
+      PAYMENT_WEBHOOK_TOKEN: ${PAYMENT_WEBHOOK_TOKEN}
       REDIS_CLIENT: predis
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -104,7 +109,7 @@ services:
     expose:
       - "8000"
     healthcheck:
-      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/api/v1/health/ready') === false ? 1 : 0);"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/health/ready') === false ? 1 : 0);"]
       interval: 10s
       timeout: 3s
       retries: 10
