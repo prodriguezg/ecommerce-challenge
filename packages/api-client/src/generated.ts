@@ -1020,6 +1020,17 @@ export interface components {
             manual_review?: {
                 [key: string]: unknown;
             } | null;
+            /** Format: email */
+            customer_email?: string;
+            shipping_method_name?: string;
+            amounts?: {
+                subtotal: components["schemas"]["MoneyAmount"];
+                product_tax: components["schemas"]["MoneyAmount"];
+                shipping: components["schemas"]["MoneyAmount"];
+                shipping_tax: components["schemas"]["MoneyAmount"];
+                total: components["schemas"]["MoneyAmount"];
+                currency: components["schemas"]["CurrencyCode"];
+            };
         };
         OrderPage: {
             items: components["schemas"]["Order"][];
@@ -1479,6 +1490,16 @@ export interface components {
         SortDirection: "asc" | "desc";
         DeletedFilter: "exclude" | "include" | "only";
         OrderStatusFilter: components["schemas"]["OrderStatus"];
+        PaymentStateFilter: "requested" | "processing" | "initiation_failed" | "succeeded" | "declined" | "provider_error";
+        CustomerEmailFilter: string;
+        OrderNumberFilter: string;
+        /** @description Actor ULID or exact email address. */
+        AuditActorFilter: string;
+        AuditActionFilter: string;
+        /** @description Exact target ULID or partial target type. */
+        AuditTargetFilter: string;
+        DateFrom: string;
+        DateTo: string;
         Page: number;
         PerPage: 10 | 20 | 50 | 100;
     };
@@ -2612,6 +2633,11 @@ export interface operations {
         parameters: {
             query?: {
                 status?: components["parameters"]["OrderStatusFilter"];
+                payment_status?: components["parameters"]["PaymentStateFilter"];
+                date_from?: components["parameters"]["DateFrom"];
+                date_to?: components["parameters"]["DateTo"];
+                email?: components["parameters"]["CustomerEmailFilter"];
+                number?: components["parameters"]["OrderNumberFilter"];
                 page?: components["parameters"]["Page"];
                 per_page?: components["parameters"]["PerPage"];
             };
@@ -2732,6 +2758,13 @@ export interface operations {
         parameters: {
             query?: {
                 q?: components["parameters"]["Search"];
+                /** @description Actor ULID or exact email address. */
+                actor?: components["parameters"]["AuditActorFilter"];
+                action?: components["parameters"]["AuditActionFilter"];
+                /** @description Exact target ULID or partial target type. */
+                target?: components["parameters"]["AuditTargetFilter"];
+                date_from?: components["parameters"]["DateFrom"];
+                date_to?: components["parameters"]["DateTo"];
                 page?: components["parameters"]["Page"];
                 per_page?: components["parameters"]["PerPage"];
             };

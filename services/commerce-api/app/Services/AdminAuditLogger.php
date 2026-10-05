@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
-use App\Models\DomainModel;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 class AdminAuditLogger
@@ -16,14 +16,16 @@ class AdminAuditLogger
     public function record(
         Request $request,
         string $action,
-        DomainModel $target,
+        Model $target,
         ?array $before,
         ?array $after,
+        ?User $actor = null,
     ): void {
-        $actor = $request->user();
+        $requestActor = $request->user();
+        $actor ??= $requestActor instanceof User ? $requestActor : null;
 
         AuditLog::unguarded(fn (): AuditLog => AuditLog::create([
-            'actor_user_id' => $actor instanceof User ? $actor->getKey() : null,
+            'actor_user_id' => $actor?->getKey(),
             'action_code' => $action,
             'target_type' => $target->getMorphClass(),
             'target_id' => $target->getKey(),
@@ -46,8 +48,29 @@ class AdminAuditLogger
             return null;
         }
 
-        return collect($data)
-            ->except(['password', 'password_hash', 'remember_token', 'image_path'])
-            ->all();
+        $redacted = [];
+
+        foreach ($data as $key => $value) {
+            if ($this->isSensitiveKey((string) $key)) {
+                continue;
+            }
+
+            $redacted[$key] = is_array($value) ? $this->redact($value) : $value;
+        }
+
+        return $redacted;
+    }
+
+    private function isSensitiveKey(string $key): bool
+    {
+        $normalized = strtolower($key);
+
+        return str_contains($normalized, 'password')
+            || str_contains($normalized, 'token')
+            || str_contains($normalized, 'card')
+            || str_contains($normalized, 'security_code')
+            || str_contains($normalized, 'cvv')
+            || $normalized === 'payment_test_number'
+            || $normalized === 'image_path';
     }
 }
