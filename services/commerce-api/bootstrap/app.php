@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureSetupIsAvailable;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\VerifyPaymentWebhookToken;
 use App\Http\Responses\ProblemDetails;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
             'setup.available' => EnsureSetupIsAvailable::class,
+            'payment.webhook' => VerifyPaymentWebhookToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

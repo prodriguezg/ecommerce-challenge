@@ -23,6 +23,7 @@ class DeliverPaymentWebhookTest extends TestCase
         ]);
         $job = new DeliverPaymentWebhook(
             eventId: '01ARZ3NDEKTSV4RRFFQ69G5FAX',
+            commercePaymentId: '01ARZ3NDEKTSV4RRFFQ69G5FAZ',
             providerPaymentId: '01ARZ3NDEKTSV4RRFFQ69G5FAY',
             outcome: PaymentOutcome::Declined,
             callbackUrl: 'https://commerce.test/api/v1/payments/webhooks/mock',
@@ -35,6 +36,7 @@ class DeliverPaymentWebhookTest extends TestCase
             return $request->hasHeader('Authorization', 'Bearer secret-test-token')
                 && $request->data() === [
                     'event_id' => '01ARZ3NDEKTSV4RRFFQ69G5FAX',
+                    'commerce_payment_id' => '01ARZ3NDEKTSV4RRFFQ69G5FAZ',
                     'provider_payment_id' => '01ARZ3NDEKTSV4RRFFQ69G5FAY',
                     'outcome' => 'declined',
                     'provider_code' => 'CARD_DECLINED',
@@ -47,6 +49,7 @@ class DeliverPaymentWebhookTest extends TestCase
     {
         $job = new DeliverPaymentWebhook(
             eventId: '01ARZ3NDEKTSV4RRFFQ69G5FAX',
+            commercePaymentId: '01ARZ3NDEKTSV4RRFFQ69G5FAZ',
             providerPaymentId: '01ARZ3NDEKTSV4RRFFQ69G5FAY',
             outcome: PaymentOutcome::Error,
             callbackUrl: 'https://commerce.test/api/v1/payments/webhooks/mock',

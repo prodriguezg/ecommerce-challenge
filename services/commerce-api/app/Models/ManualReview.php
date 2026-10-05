@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/** @property ManualReviewStatus $status */
 #[Guarded([])]
 class ManualReview extends DomainModel
 {

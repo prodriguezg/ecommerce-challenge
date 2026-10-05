@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use Brick\Math\BigDecimal;
@@ -56,6 +57,10 @@ class OrderResource extends JsonResource
 
     public function paymentStatus(): string
     {
+        if ($this->resource->status === OrderStatus::ManualReview) {
+            return 'manual_review';
+        }
+
         return match ($this->resource->payment?->status) {
             PaymentStatus::Succeeded => 'succeeded',
             PaymentStatus::Declined => 'declined',

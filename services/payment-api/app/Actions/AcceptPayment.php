@@ -47,6 +47,7 @@ class AcceptPayment
             try {
                 DeliverPaymentWebhook::dispatch(
                     eventId: (string) Str::ulid(),
+                    commercePaymentId: $payment['commerce_payment_id'],
                     providerPaymentId: $acceptance['provider_payment_id'],
                     outcome: $outcome,
                     callbackUrl: $payment['callback_url'],

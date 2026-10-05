@@ -20,6 +20,7 @@ class DeliverPaymentWebhook implements ShouldQueue
 
     public function __construct(
         public readonly string $eventId,
+        public readonly string $commercePaymentId,
         public readonly string $providerPaymentId,
         public readonly PaymentOutcome $outcome,
         public readonly string $callbackUrl,
@@ -34,6 +35,7 @@ class DeliverPaymentWebhook implements ShouldQueue
             ->timeout((int) config('payment.webhook_timeout_seconds'))
             ->post($this->callbackUrl, [
                 'event_id' => $this->eventId,
+                'commerce_payment_id' => $this->commercePaymentId,
                 'provider_payment_id' => $this->providerPaymentId,
                 'outcome' => $this->outcome->value,
                 'provider_code' => $this->outcome->providerCode(),
