@@ -74,6 +74,7 @@ The contract must define at least 400, 401, 403, 404, 409, 413, 415, 422, 429, a
 | POST | `/setup/admin` | Create the sole admin only when none exists |
 | GET | `/products` | Search/filter/sort/page active products |
 | GET | `/products/{product}` | Read active product details |
+| GET | `/products/{product}/image` | Read an uploaded image or the cacheable SVG placeholder |
 | GET | `/categories` | List active categories for storefront filters |
 | GET | `/shipping-methods` | List active checkout shipping choices |
 

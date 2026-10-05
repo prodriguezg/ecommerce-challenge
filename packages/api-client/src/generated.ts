@@ -102,6 +102,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/products/{product}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product: components["parameters"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getProductImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/categories": {
         parameters: {
             query?: never;
@@ -1743,6 +1761,34 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: components["responses"]["Product"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getProductImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product: components["parameters"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Uploaded product image or the SVG placeholder */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "X-Content-Type-Options"?: "nosniff";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                    "image/svg+xml": string;
+                };
+            };
             404: components["responses"]["NotFound"];
         };
     };

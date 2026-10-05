@@ -138,6 +138,9 @@ The suite should control provider delay configuration so routine CI remains boun
 
 Automated checks support but do not certify accessibility.
 
+The executable coverage matrix, artifact policy, and manual WCAG 2.2 AA checklist
+are maintained in [verification.md](verification.md).
+
 ## 8. Static and build checks
 
 Backend:
