@@ -25,6 +25,8 @@ jobs:
           node-version: '24.13.1'
       # Policy: secrets and known Composer advisories block immediately.
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: composer audit --locked --abandoned=fail --working-dir=services/commerce-api
       - run: composer audit --locked --abandoned=fail --working-dir=services/payment-api
       # Policy: npm and repository findings block at high or critical severity.
