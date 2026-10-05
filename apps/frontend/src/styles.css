@@ -1,0 +1,7 @@
+html { min-width: 320px; scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; }
+img { max-width: 100%; }
+pre { background: #f5f8fc; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; margin: 0; overflow: auto; padding: 12px; white-space: pre-wrap; }
+.skip-link { background: #17202a; color: white; left: 12px; padding: 10px 14px; position: fixed; top: -80px; z-index: 2000; }
+.skip-link:focus { top: 12px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; } }
