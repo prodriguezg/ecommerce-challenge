@@ -10,6 +10,11 @@ return [
         'payment_callback_url' => env('PAYMENT_CALLBACK_URL', 'http://commerce-api:8000/api/v1/payments/webhooks/mock'),
         'payment_connect_timeout_seconds' => (int) env('PAYMENT_CONNECT_TIMEOUT_SECONDS', 2),
         'payment_timeout_seconds' => (int) env('PAYMENT_TIMEOUT_SECONDS', 5),
+        'payment_webhook_token' => env('PAYMENT_WEBHOOK_TOKEN'),
+        'payment_webhook_rate_limit' => (int) env('PAYMENT_WEBHOOK_RATE_LIMIT', 120),
+        'reservation_expiration_batch_size' => (int) env('RESERVATION_EXPIRATION_BATCH_SIZE', 100),
+        'reservation_claim_ttl_seconds' => (int) env('RESERVATION_CLAIM_TTL_SECONDS', 60),
+        'reservation_worker_interval_seconds' => (int) env('RESERVATION_WORKER_INTERVAL_SECONDS', 5),
     ],
     'documentation' => [
         'enabled' => (bool) env('API_DOCS_ENABLED', false),

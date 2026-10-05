@@ -936,7 +936,7 @@ components:
             type: object
             required: [note, version]
             properties:
-              note: { type: string, minLength: 1, maxLength: 2000 }
+              note: { type: string, minLength: 1, maxLength: 2000, pattern: '.*\S.*' }
               version: { type: integer, minimum: 1 }
             additionalProperties: false
     SettingMutation:
@@ -1285,7 +1285,7 @@ components:
         guest: { type: boolean }
         guest_order_url: { type: string, format: uri-reference, description: Returned exactly once for guest checkout. }
       additionalProperties: false
-    OrderStatus: { type: string, enum: [awaiting_payment, paid, payment_failed, expired, manual_review] }
+    OrderStatus: { type: string, enum: [awaiting_payment, paid, payment_failed, expired, manual_review, review_processed] }
     PaymentStatus: { type: string, enum: [pending, succeeded, declined, error, manual_review] }
     OrderStatusView:
       type: object
@@ -1311,6 +1311,20 @@ components:
         version: { $ref: '#/components/schemas/Version' }
         created_at: { $ref: '#/components/schemas/UtcTimestamp' }
         updated_at: { $ref: '#/components/schemas/UtcTimestamp' }
+        state_history:
+          type: array
+          items: { type: object, additionalProperties: true }
+        reservations:
+          type: array
+          items: { type: object, additionalProperties: true }
+        payment:
+          oneOf:
+            - { type: object, additionalProperties: true }
+            - { type: 'null' }
+        manual_review:
+          oneOf:
+            - { type: object, additionalProperties: true }
+            - { type: 'null' }
       additionalProperties: false
     OrderPage:
       type: object
@@ -1321,9 +1335,10 @@ components:
       additionalProperties: false
     PaymentWebhookInput:
       type: object
-      required: [event_id, provider_payment_id, outcome, provider_code, occurred_at]
+      required: [event_id, commerce_payment_id, provider_payment_id, outcome, provider_code, occurred_at]
       properties:
         event_id: { $ref: '#/components/schemas/Ulid' }
+        commerce_payment_id: { $ref: '#/components/schemas/Ulid' }
         provider_payment_id: { $ref: '#/components/schemas/Ulid' }
         outcome: { type: string, enum: [succeeded, declined, error] }
         provider_code: { type: string, pattern: '^[A-Z0-9_]+$', maxLength: 64 }

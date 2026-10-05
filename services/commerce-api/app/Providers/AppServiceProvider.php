@@ -29,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', fn (Request $request): Limit => $this->authenticationLimit($request, 'login'));
         RateLimiter::for('setup', fn (Request $request): Limit => $this->authenticationLimit($request, 'setup'));
         RateLimiter::for('registration', fn (Request $request): Limit => $this->authenticationLimit($request, 'registration'));
+        RateLimiter::for('payment-webhooks', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('api.checkout.payment_webhook_rate_limit'),
+        )->by($request->ip()));
     }
 
     private function authenticationLimit(Request $request, string $name): Limit

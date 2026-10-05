@@ -987,7 +987,7 @@ export interface components {
             guest_order_url?: string;
         };
         /** @enum {string} */
-        OrderStatus: "awaiting_payment" | "paid" | "payment_failed" | "expired" | "manual_review";
+        OrderStatus: "awaiting_payment" | "paid" | "payment_failed" | "expired" | "manual_review" | "review_processed";
         /** @enum {string} */
         PaymentStatus: "pending" | "succeeded" | "declined" | "error" | "manual_review";
         OrderStatusView: {
@@ -1008,6 +1008,18 @@ export interface components {
             version: components["schemas"]["Version"];
             created_at: components["schemas"]["UtcTimestamp"];
             updated_at: components["schemas"]["UtcTimestamp"];
+            state_history?: {
+                [key: string]: unknown;
+            }[];
+            reservations?: {
+                [key: string]: unknown;
+            }[];
+            payment?: {
+                [key: string]: unknown;
+            } | null;
+            manual_review?: {
+                [key: string]: unknown;
+            } | null;
         };
         OrderPage: {
             items: components["schemas"]["Order"][];
@@ -1015,6 +1027,7 @@ export interface components {
         };
         PaymentWebhookInput: {
             event_id: components["schemas"]["Ulid"];
+            commerce_payment_id: components["schemas"]["Ulid"];
             provider_payment_id: components["schemas"]["Ulid"];
             /** @enum {string} */
             outcome: "succeeded" | "declined" | "error";

@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property ReservationStatus $status
+ * @property Carbon $expires_at
+ */
 #[Guarded([])]
 class Reservation extends DomainModel
 {
