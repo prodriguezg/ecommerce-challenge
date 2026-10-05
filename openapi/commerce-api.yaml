@@ -146,6 +146,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /cart:
     get:
       operationId: getCart
@@ -274,6 +275,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Order' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /guest-orders/{order}/status:
     parameters:
       - { $ref: '#/components/parameters/OrderId' }
@@ -284,6 +286,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/OrderStatus' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /payments/webhooks/mock:
     post:
       operationId: receiveMockPaymentWebhook

@@ -4,6 +4,7 @@ return [
     'checkout' => [
         'reservation_timeout_seconds' => (int) env('RESERVATION_TIMEOUT_SECONDS', 120),
         'guest_order_link_days' => (int) env('GUEST_ORDER_LINK_DAYS', 30),
+        'guest_order_rate_limit' => (int) env('GUEST_ORDER_RATE_LIMIT', 60),
         'order_number_prefix' => env('ORDER_NUMBER_PREFIX', 'ORD-'),
         'order_number_start' => (int) env('ORDER_NUMBER_START', 100001),
         'payment_url' => env('PAYMENT_API_URL', 'http://payment-api:8000/api/v1/payments'),

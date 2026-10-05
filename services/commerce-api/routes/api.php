@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\GuestOrderController;
+use App\Http\Controllers\Api\V1\GuestOrderRegistrationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentWebhookController;
@@ -34,8 +35,13 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/payments/webhooks/mock', PaymentWebhookController::class)
         ->middleware(['payment.webhook', 'throttle:payment-webhooks'])
         ->name('payments.webhooks.mock');
-    Route::get('/guest-orders/{order}', [GuestOrderController::class, 'show'])->name('guest-orders.show');
-    Route::get('/guest-orders/{order}/status', [GuestOrderController::class, 'status'])->name('guest-orders.status');
+    Route::middleware('throttle:guest-orders')->group(function (): void {
+        Route::get('/guest-orders/{order}', [GuestOrderController::class, 'show'])->name('guest-orders.show');
+        Route::get('/guest-orders/{order}/status', [GuestOrderController::class, 'status'])->name('guest-orders.status');
+    });
+    Route::post('/guest-orders/{order}/register', [GuestOrderRegistrationController::class, 'store'])
+        ->middleware('throttle:registration')
+        ->name('guest-orders.register');
 
     Route::get('/setup/status', [SetupController::class, 'status'])->name('setup.status');
     Route::post('/setup/admin', [SetupController::class, 'create'])

@@ -24,7 +24,8 @@ class OrderController extends Controller
         $orders = Order::query()
             ->where('customer_user_id', $customer->id)
             ->with(['currency', 'lines', 'address', 'payment'])
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate((int) $request->integer('per_page', 20));
 
         return response()->json([
