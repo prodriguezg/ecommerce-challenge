@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ReservationStatus;
 use Database\Factories\InventoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,5 +31,12 @@ class Inventory extends DomainModel
     public function reservationItems(): HasMany
     {
         return $this->hasMany(ReservationItem::class);
+    }
+
+    public function reservedQuantity(): int
+    {
+        return (int) $this->reservationItems()
+            ->whereHas('reservation', fn ($query) => $query->where('status', ReservationStatus::Active->value))
+            ->sum('quantity');
     }
 }
