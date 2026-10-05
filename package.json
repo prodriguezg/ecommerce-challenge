@@ -17,13 +17,16 @@
     "openapi:lint": "redocly lint openapi/commerce-api.yaml openapi/payment-api.yaml",
     "openapi:validate": "node scripts/check-openapi.mjs",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --project e2e/tsconfig.json --noEmit && npm run typecheck --workspaces --if-present"
   },
   "engines": {
     "node": ">=24.13.1",
     "npm": ">=11.8.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
     "@redocly/cli": "2.57.0",
     "openapi-typescript": "7.13.0",
     "yaml": "2.9.1"

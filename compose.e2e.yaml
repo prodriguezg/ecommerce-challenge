@@ -1,0 +1,13 @@
+services:
+  commerce-api:
+    environment:
+      RESERVATION_TIMEOUT_SECONDS: 30
+      RESERVATION_WORKER_INTERVAL_SECONDS: 1
+  reservation-worker:
+    environment:
+      RESERVATION_WORKER_INTERVAL_SECONDS: 1
+  payment-api:
+    environment:
+      PAYMENT_LATE_SUCCESS_DELAY_SECONDS: 2
+      PAYMENT_NORMAL_DELAY_MAX_SECONDS: 0
+      PAYMENT_NORMAL_DELAY_MIN_SECONDS: 0

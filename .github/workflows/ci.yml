@@ -58,6 +58,76 @@ jobs:
       - run: cp .env.example .env
       - run: ./scripts/check.sh
 
+  mysql-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4.8
+        env:
+          MYSQL_DATABASE: ecommerce_test
+          MYSQL_PASSWORD: ecommerce_test
+          MYSQL_ROOT_PASSWORD: root_test
+          MYSQL_USER: ecommerce_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot_test --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: mysql
+      DB_DATABASE: ecommerce_test
+      DB_HOST: 127.0.0.1
+      DB_PASSWORD: ecommerce_test
+      DB_PORT: 3306
+      DB_USERNAME: ecommerce_test
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          coverage: none
+          extensions: pdo_mysql
+          php-version: '8.5'
+      - run: composer install --no-interaction --no-progress --working-dir=services/commerce-api
+      # The full feature suite exercises transaction locks, uniqueness constraints,
+      # checkout atomicity, expiry idempotency, and the CSV matrix on real InnoDB.
+      - run: mkdir -p test-results
+      - run: services/commerce-api/vendor/bin/phpunit --configuration services/commerce-api/phpunit.xml --testsuite Feature --log-junit test-results/mysql-feature.xml
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          if-no-files-found: warn
+          name: mysql-integration-results
+          path: test-results/mysql-feature.xml
+          retention-days: 7
+
+  browser-journeys:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          cache: npm
+          node-version: '24.13.1'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: cp .env.example .env
+      - run: docker compose -f compose.yaml -f compose.e2e.yaml up --detach --build --wait
+      - run: npm run test:e2e
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          if-no-files-found: warn
+          name: playwright-results
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+      - if: ${{ always() }}
+        run: docker compose -f compose.yaml -f compose.e2e.yaml down --volumes
+
   containers:
     runs-on: ubuntu-latest
     steps:

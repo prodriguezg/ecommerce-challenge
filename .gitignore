@@ -2,6 +2,8 @@
 .env
 *.log
 node_modules/
+playwright-report/
+test-results/
 apps/*/dist/
 *.tsbuildinfo
 services/*/.env
