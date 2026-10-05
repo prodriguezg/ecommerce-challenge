@@ -656,6 +656,11 @@ paths:
       security: [{ cookieAuth: [] }]
       parameters:
         - { $ref: '#/components/parameters/OrderStatusFilter' }
+        - { $ref: '#/components/parameters/PaymentStateFilter' }
+        - { $ref: '#/components/parameters/DateFrom' }
+        - { $ref: '#/components/parameters/DateTo' }
+        - { $ref: '#/components/parameters/CustomerEmailFilter' }
+        - { $ref: '#/components/parameters/OrderNumberFilter' }
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/PerPage' }
       responses:
@@ -740,6 +745,11 @@ paths:
       security: [{ cookieAuth: [] }]
       parameters:
         - { $ref: '#/components/parameters/Search' }
+        - { $ref: '#/components/parameters/AuditActorFilter' }
+        - { $ref: '#/components/parameters/AuditActionFilter' }
+        - { $ref: '#/components/parameters/AuditTargetFilter' }
+        - { $ref: '#/components/parameters/DateFrom' }
+        - { $ref: '#/components/parameters/DateTo' }
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/PerPage' }
       responses:
@@ -778,6 +788,14 @@ components:
     SortDirection: { name: direction, in: query, schema: { type: string, enum: [asc, desc], default: asc } }
     DeletedFilter: { name: deleted, in: query, schema: { type: string, enum: [exclude, include, only], default: exclude } }
     OrderStatusFilter: { name: status, in: query, schema: { $ref: '#/components/schemas/OrderStatus' } }
+    PaymentStateFilter: { name: payment_status, in: query, schema: { type: string, enum: [requested, processing, initiation_failed, succeeded, declined, provider_error] } }
+    CustomerEmailFilter: { name: email, in: query, schema: { type: string, format: email, maxLength: 254 } }
+    OrderNumberFilter: { name: number, in: query, schema: { type: string, maxLength: 64 } }
+    AuditActorFilter: { name: actor, in: query, schema: { type: string, maxLength: 254 }, description: Actor ULID or exact email address. }
+    AuditActionFilter: { name: action, in: query, schema: { type: string, maxLength: 64 } }
+    AuditTargetFilter: { name: target, in: query, schema: { type: string, maxLength: 200 }, description: Exact target ULID or partial target type. }
+    DateFrom: { name: date_from, in: query, schema: { type: string, format: date } }
+    DateTo: { name: date_to, in: query, schema: { type: string, format: date } }
     Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
     PerPage: { name: per_page, in: query, schema: { type: integer, enum: [10, 20, 50, 100], default: 20 } }
   requestBodies:
@@ -1328,6 +1346,19 @@ components:
           oneOf:
             - { type: object, additionalProperties: true }
             - { type: 'null' }
+        customer_email: { type: string, format: email }
+        shipping_method_name: { type: string }
+        amounts:
+          type: object
+          required: [subtotal, product_tax, shipping, shipping_tax, total, currency]
+          properties:
+            subtotal: { $ref: '#/components/schemas/MoneyAmount' }
+            product_tax: { $ref: '#/components/schemas/MoneyAmount' }
+            shipping: { $ref: '#/components/schemas/MoneyAmount' }
+            shipping_tax: { $ref: '#/components/schemas/MoneyAmount' }
+            total: { $ref: '#/components/schemas/MoneyAmount' }
+            currency: { $ref: '#/components/schemas/CurrencyCode' }
+          additionalProperties: false
       additionalProperties: false
     OrderPage:
       type: object

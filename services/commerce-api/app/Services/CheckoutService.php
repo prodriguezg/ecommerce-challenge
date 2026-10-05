@@ -6,7 +6,6 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Exceptions\CheckoutConflictException;
-use App\Models\ApplicationSetting;
 use App\Models\CheckoutIdempotency;
 use App\Models\Inventory;
 use App\Models\Order;
@@ -29,7 +28,10 @@ use Throwable;
 
 class CheckoutService
 {
-    public function __construct(private readonly PaymentProvider $paymentProvider) {}
+    public function __construct(
+        private readonly PaymentProvider $paymentProvider,
+        private readonly ApplicationSettings $settings,
+    ) {}
 
     /** @param array<string, mixed> $input */
     public function checkout(array $input, ?User $customer): CheckoutOutcome
@@ -287,9 +289,7 @@ class CheckoutService
 
     private function reservationTimeout(): int
     {
-        $override = ApplicationSetting::query()->where('key', 'reservation_timeout_seconds')->value('value');
-
-        return $override === null ? (int) config('api.checkout.reservation_timeout_seconds') : (int) $override;
+        return $this->settings->effective(ApplicationSettings::ReservationTimeoutSeconds)['value'];
     }
 
     private function nextOrderSequence(): int

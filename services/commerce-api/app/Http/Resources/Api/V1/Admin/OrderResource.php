@@ -4,6 +4,8 @@ namespace App\Http\Resources\Api\V1\Admin;
 
 use App\Http\Resources\Api\V1\OrderResource as BaseOrderResource;
 use App\Models\Order;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Http\Request;
 
 /** @mixin Order */
@@ -22,9 +24,20 @@ class OrderResource extends BaseOrderResource
         $base = parent::toArray($request);
         $payment = $this->resource->payment;
         $review = $this->resource->manualReview;
+        $minorUnits = (int) $this->resource->currency->minor_units;
 
         return [
             ...$base,
+            'customer_email' => $this->resource->email,
+            'shipping_method_name' => $this->resource->shipping_method_name,
+            'amounts' => [
+                'subtotal' => $this->rounded($this->resource->subtotal, $minorUnits),
+                'product_tax' => $this->rounded($this->resource->product_tax, $minorUnits),
+                'shipping' => $this->rounded($this->resource->shipping_amount, $minorUnits),
+                'shipping_tax' => $this->rounded($this->resource->shipping_tax, $minorUnits),
+                'total' => $this->rounded($this->resource->grand_total, $minorUnits),
+                'currency' => $this->resource->currency_code,
+            ],
             'state_history' => $this->resource->stateHistory
                 ->sortBy('created_at')
                 ->values()
@@ -74,5 +87,10 @@ class OrderResource extends BaseOrderResource
                 'created_at' => $review->created_at->utc()->format('Y-m-d\TH:i:s\Z'),
             ],
         ];
+    }
+
+    private function rounded(string $amount, int $minorUnits): string
+    {
+        return (string) BigDecimal::of($amount)->toScale($minorUnits, RoundingMode::HalfUp);
     }
 }
