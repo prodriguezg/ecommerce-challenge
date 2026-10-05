@@ -4,11 +4,14 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\SensitiveDataRedactor;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 class AdminAuditLogger
 {
+    public function __construct(private readonly SensitiveDataRedactor $redactor) {}
+
     /**
      * @param  array<string, mixed>|null  $before
      * @param  array<string, mixed>|null  $after
@@ -48,29 +51,6 @@ class AdminAuditLogger
             return null;
         }
 
-        $redacted = [];
-
-        foreach ($data as $key => $value) {
-            if ($this->isSensitiveKey((string) $key)) {
-                continue;
-            }
-
-            $redacted[$key] = is_array($value) ? $this->redact($value) : $value;
-        }
-
-        return $redacted;
-    }
-
-    private function isSensitiveKey(string $key): bool
-    {
-        $normalized = strtolower($key);
-
-        return str_contains($normalized, 'password')
-            || str_contains($normalized, 'token')
-            || str_contains($normalized, 'card')
-            || str_contains($normalized, 'security_code')
-            || str_contains($normalized, 'cvv')
-            || $normalized === 'payment_test_number'
-            || $normalized === 'image_path';
+        return $this->redactor->removeSensitiveKeys($data);
     }
 }

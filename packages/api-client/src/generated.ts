@@ -2201,6 +2201,7 @@ export interface operations {
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
             422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     deleteAdminProductImage: {
@@ -2587,6 +2588,7 @@ export interface operations {
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
             422: components["responses"]["ImportValidationError"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     getAdminProductImport: {

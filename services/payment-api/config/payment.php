@@ -9,4 +9,5 @@ return [
     'webhook_connect_timeout_seconds' => (int) env('PAYMENT_WEBHOOK_CONNECT_TIMEOUT_SECONDS', 2),
     'webhook_timeout_seconds' => (int) env('PAYMENT_WEBHOOK_TIMEOUT_SECONDS', 5),
     'worker_heartbeat_ttl_seconds' => (int) env('PAYMENT_WORKER_HEARTBEAT_TTL_SECONDS', 10),
+    'request_rate_limit' => (int) env('PAYMENT_REQUEST_RATE_LIMIT', 60),
 ];

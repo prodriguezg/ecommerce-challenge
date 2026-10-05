@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Responses\ProblemDetails;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -74,13 +75,13 @@ class StorePaymentRequest extends FormRequest
 
     protected function failedValidation(Validator $validator): never
     {
-        throw new HttpResponseException(response()->json([
-            'type' => 'about:blank',
-            'title' => 'Validation failed',
-            'status' => 422,
-            'detail' => 'The payment request was invalid.',
-            'code' => 'VALIDATION_ERROR',
-            'errors' => $validator->errors()->toArray(),
-        ], 422, ['Content-Type' => 'application/problem+json']));
+        throw new HttpResponseException(ProblemDetails::response(
+            $this,
+            422,
+            'Validation failed',
+            'The payment request was invalid.',
+            'validation_error',
+            $validator->errors()->toArray(),
+        ));
     }
 }

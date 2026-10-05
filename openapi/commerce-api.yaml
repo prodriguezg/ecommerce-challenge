@@ -378,6 +378,7 @@ paths:
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
       operationId: deleteAdminProductImage
       tags: [Admin catalog]
@@ -618,6 +619,7 @@ paths:
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422': { $ref: '#/components/responses/ImportValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /admin/product-imports/{import}:
     parameters:
       - { $ref: '#/components/parameters/ImportId' }

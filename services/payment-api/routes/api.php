@@ -9,6 +9,6 @@ Route::get('/health/ready', [HealthController::class, 'ready'])->name('health.re
 
 Route::prefix('api/v1')->group(function (): void {
     Route::post('/payments', [PaymentController::class, 'store'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:payments')
         ->name('payments.store');
 });
