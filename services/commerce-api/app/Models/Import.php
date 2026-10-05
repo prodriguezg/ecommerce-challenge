@@ -16,6 +16,8 @@ class Import extends DomainModel
     /** @use HasFactory<ImportFactory> */
     use HasFactory;
 
+    protected $hidden = ['rejection_report'];
+
     /** @return BelongsTo<User, $this> */
     public function actor(): BelongsTo
     {
