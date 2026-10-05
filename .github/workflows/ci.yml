@@ -9,6 +9,37 @@ permissions:
   contents: read
 
 jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          coverage: none
+          php-version: '8.5'
+      - uses: actions/setup-node@v6
+        with:
+          cache: npm
+          node-version: '24.13.1'
+      # Policy: secrets and known Composer advisories block immediately.
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: composer audit --locked --abandoned=fail --working-dir=services/commerce-api
+      - run: composer audit --locked --abandoned=fail --working-dir=services/payment-api
+      # Policy: npm and repository findings block at high or critical severity.
+      - run: npm audit --audit-level=high
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
   application:
     runs-on: ubuntu-latest
     steps:
@@ -34,3 +65,23 @@ jobs:
       - run: cp .env.example .env
       - run: docker compose config --quiet
       - run: docker compose build
+      # Policy: fixed high/critical image vulnerabilities block; unfixed findings
+      # remain visible for explicit upstream triage.
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ecommerce-challenge-frontend:latest
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ecommerce-challenge-commerce-api:latest
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ecommerce-challenge-payment-api:latest
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'

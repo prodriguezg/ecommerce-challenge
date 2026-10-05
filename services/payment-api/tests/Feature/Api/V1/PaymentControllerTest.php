@@ -76,7 +76,7 @@ class PaymentControllerTest extends TestCase
         $response
             ->assertConflict()
             ->assertHeader('Content-Type', 'application/problem+json')
-            ->assertJsonPath('code', 'IDEMPOTENCY_CONFLICT');
+            ->assertJsonPath('code', 'idempotency_conflict');
         Queue::assertPushed(DeliverPaymentWebhook::class, 1);
     }
 
@@ -124,7 +124,7 @@ class PaymentControllerTest extends TestCase
         $response
             ->assertUnprocessable()
             ->assertHeader('Content-Type', 'application/problem+json')
-            ->assertJsonPath('code', 'VALIDATION_ERROR');
+            ->assertJsonPath('code', 'validation_error');
         Queue::assertNothingPushed();
     }
 

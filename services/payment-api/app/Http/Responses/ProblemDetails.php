@@ -5,12 +5,11 @@ namespace App\Http\Responses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class ProblemDetails
+final class ProblemDetails
 {
     /**
      * @param  array<string, list<string>>  $errors
      * @param  array<string, mixed>  $headers
-     * @param  array<string, mixed>  $extensions
      */
     public static function response(
         Request $request,
@@ -20,7 +19,6 @@ class ProblemDetails
         string $code,
         array $errors = [],
         array $headers = [],
-        array $extensions = [],
     ): JsonResponse {
         $body = [
             'type' => rtrim((string) config('app.url'), '/').'/problems/'.$code,
@@ -35,25 +33,6 @@ class ProblemDetails
             $body['errors'] = $errors;
         }
 
-        $body = [...$body, ...$extensions];
-
-        return response()->json(
-            $body,
-            $status,
-            ['Content-Type' => 'application/problem+json', ...$headers],
-        );
-    }
-
-    /** @param array<string, list<string>> $errors */
-    public static function validation(Request $request, array $errors): JsonResponse
-    {
-        return self::response(
-            $request,
-            422,
-            'Validation failed',
-            'One or more fields are invalid.',
-            'validation_error',
-            $errors,
-        );
+        return response()->json($body, $status, ['Content-Type' => 'application/problem+json', ...$headers]);
     }
 }

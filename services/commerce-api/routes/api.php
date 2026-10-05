@@ -33,7 +33,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/categories', [CatalogController::class, 'categories'])->name('categories.index');
     Route::get('/shipping-methods', [CatalogController::class, 'shippingMethods'])->name('shipping-methods.index');
     Route::post('/cart/quote', [CartController::class, 'quote'])->middleware('throttle:60,1')->name('cart.quote');
-    Route::post('/checkouts', [CheckoutController::class, 'store'])->middleware('throttle:30,1')->name('checkouts.store');
+    Route::post('/checkouts', [CheckoutController::class, 'store'])->middleware('throttle:checkouts')->name('checkouts.store');
     Route::post('/payments/webhooks/mock', PaymentWebhookController::class)
         ->middleware(['payment.webhook', 'throttle:payment-webhooks'])
         ->name('payments.webhooks.mock');
@@ -42,7 +42,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/guest-orders/{order}/status', [GuestOrderController::class, 'status'])->name('guest-orders.status');
     });
     Route::post('/guest-orders/{order}/register', [GuestOrderRegistrationController::class, 'store'])
-        ->middleware('throttle:registration')
+        ->middleware('throttle:guest-registration')
         ->name('guest-orders.register');
 
     Route::get('/setup/status', [SetupController::class, 'status'])->name('setup.status');
@@ -51,7 +51,7 @@ Route::prefix('v1')->group(function (): void {
         ->name('setup.admin');
 
     Route::post('/auth/login', [AuthenticationController::class, 'login'])->middleware('throttle:login')->name('auth.login');
-    Route::post('/customers/register', [CustomerRegistrationController::class, 'create'])->middleware('throttle:registration')->name('customers.register');
+    Route::post('/customers/register', [CustomerRegistrationController::class, 'create'])->middleware('throttle:customer-registration')->name('customers.register');
     Route::get('/products/{product}/image', ProductImageController::class)->name('products.image');
 
     Route::middleware('auth:sanctum')->group(function (): void {
@@ -72,13 +72,13 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
             Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
             Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-            Route::post('/products/{product}/image', [ProductController::class, 'replaceImage'])->name('products.image.replace');
+            Route::post('/products/{product}/image', [ProductController::class, 'replaceImage'])->middleware('throttle:image-uploads')->name('products.image.replace');
             Route::delete('/products/{product}/image', [ProductController::class, 'removeImage'])->name('products.image.remove');
             Route::get('/products/{product}/inventory', [InventoryController::class, 'show'])->name('inventory.show');
             Route::get('/products/{product}/inventory-adjustments', [InventoryController::class, 'index'])->name('inventory-adjustments.index');
             Route::post('/products/{product}/inventory-adjustments', [InventoryController::class, 'store'])->name('inventory-adjustments.store');
 
-            Route::post('/product-imports', [ProductImportController::class, 'store'])->name('product-imports.store');
+            Route::post('/product-imports', [ProductImportController::class, 'store'])->middleware('throttle:csv-uploads')->name('product-imports.store');
             Route::get('/product-imports/{import}', [ProductImportController::class, 'show'])->name('product-imports.show');
             Route::get('/product-imports/{import}/rejections.csv', [ProductImportController::class, 'download'])->name('product-imports.rejections');
 

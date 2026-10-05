@@ -1,9 +1,15 @@
 <?php
 
+use App\Http\Responses\ProblemDetails;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,7 +22,56 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontReportDuplicates();
+        $exceptions->dontFlash(['payment_test_number', 'idempotency_key']);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (ThrottleRequestsException $exception, Request $request) {
+            return ProblemDetails::response(
+                $request,
+                429,
+                'Too many requests',
+                'The request rate limit has been exceeded.',
+                'rate_limit_exceeded',
+                headers: $exception->getHeaders(),
+            );
+        });
+
+        $exceptions->render(function (HttpException $exception, Request $request) {
+            $problem = match ($exception->getStatusCode()) {
+                400 => ['Bad request', 'The request could not be understood.', 'bad_request'],
+                403 => ['Forbidden', 'The request is not authorized.', 'forbidden'],
+                413 => ['Payload too large', 'The request body exceeds the allowed size.', 'payload_too_large'],
+                415 => ['Unsupported media type', 'The request media type is not supported.', 'unsupported_media_type'],
+                default => null,
+            };
+
+            return $problem === null
+                ? null
+                : ProblemDetails::response($request, $exception->getStatusCode(), ...$problem);
+        });
+
+        $exceptions->render(function (NotFoundHttpException $exception, Request $request) {
+            return ProblemDetails::response($request, 404, 'Not found', 'The requested resource was not found.', 'not_found');
+        });
+
+        $exceptions->render(function (MethodNotAllowedHttpException $exception, Request $request) {
+            return ProblemDetails::response($request, 405, 'Method not allowed', 'The request method is not supported for this resource.', 'method_not_allowed');
+        });
+
+        $exceptions->render(function (Throwable $exception, Request $request) {
+            if ($exception instanceof HttpException
+                || $exception instanceof HttpResponseException
+                || $exception instanceof ThrottleRequestsException) {
+                return null;
+            }
+
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ProblemDetails::response($request, 500, 'Server error', 'The server could not complete the request.', 'server_error');
+        });
     })->create();

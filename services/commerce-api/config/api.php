@@ -24,4 +24,9 @@ return [
         'max_bytes' => (int) env('CSV_MAX_BYTES', 5 * 1024 * 1024),
         'max_rows' => (int) env('CSV_MAX_ROWS', 10_000),
     ],
+    'rate_limits' => [
+        'checkout' => (int) env('CHECKOUT_RATE_LIMIT', 30),
+        'csv_upload' => (int) env('CSV_UPLOAD_RATE_LIMIT', 5),
+        'image_upload' => (int) env('IMAGE_UPLOAD_RATE_LIMIT', 10),
+    ],
 ];

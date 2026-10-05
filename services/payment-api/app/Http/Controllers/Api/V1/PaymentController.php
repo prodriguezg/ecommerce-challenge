@@ -6,6 +6,7 @@ use App\Actions\AcceptPayment;
 use App\Exceptions\IdempotencyConflictException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePaymentRequest;
+use App\Http\Responses\ProblemDetails;
 use Illuminate\Http\JsonResponse;
 
 class PaymentController extends Controller
@@ -18,13 +19,13 @@ class PaymentController extends Controller
                 $request->paymentPayload(),
             );
         } catch (IdempotencyConflictException $exception) {
-            return response()->json([
-                'type' => 'about:blank',
-                'title' => 'Conflict',
-                'status' => 409,
-                'detail' => $exception->getMessage(),
-                'code' => 'IDEMPOTENCY_CONFLICT',
-            ], 409, ['Content-Type' => 'application/problem+json']);
+            return ProblemDetails::response(
+                $request,
+                409,
+                'Conflict',
+                $exception->getMessage(),
+                'idempotency_conflict',
+            );
         }
 
         return response()->json($acceptance, 202);

@@ -8,7 +8,8 @@ RUN composer install --no-dev --no-interaction --no-progress --no-scripts --pref
 FROM php:8.5.11-cli-alpine3.23
 
 ARG SERVICE_PATH
-RUN apk add --no-cache icu-dev libzip-dev supervisor \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache icu-dev libzip-dev supervisor \
     && docker-php-ext-install -j$(nproc) bcmath intl pcntl pdo_mysql zip
 
 RUN addgroup -S app && adduser -S -G app -u 1000 app

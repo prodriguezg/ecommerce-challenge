@@ -84,6 +84,8 @@ docker compose down --volumes
 
 All local defaults live in `.env.example`. Copy it to `.env`, then change reservation, worker, guest-link, payment-delay, CSV, order-number, port, or local credential settings there before starting Compose. These defaults are intentionally unsuitable for production.
 
+The checked-in environment uses HTTP intentionally and therefore sets `SECURITY_REQUIRE_TLS=false` and `SESSION_SECURE_COOKIE=false`. A production-like deployment must use an HTTPS `APP_URL`, set both values to `true`, retain HTTP-only cookies, provide explicit same-origin CORS configuration, rotate every credential, and set `API_DOCS_ENABLED=false`. The commerce service refuses to boot in required-TLS mode when the URL or cookie flags are unsafe.
+
 ## Host-native workflow
 
 Install PHP 8.5, Composer 2.9, Node.js 24, npm 11, and Docker. Start only the infrastructure, bound to loopback:
@@ -123,6 +125,8 @@ Install dependencies, then run all currently configured checks:
 ```
 
 `check.sh` validates both Composer projects, checks PHP formatting, runs both PHPUnit suites, lints/type-checks/tests/builds the npm workspaces, and validates the Compose model.
+
+CI additionally treats any detected secret, any Composer advisory, npm high/critical advisories, and Trivy high/critical repository or container findings as blocking. Unfixed image findings are reported for triage but do not block until an upstream fix exists.
 
 The OpenAPI workflow is also available independently:
 
