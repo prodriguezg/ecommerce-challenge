@@ -923,8 +923,8 @@ components:
             required: [file, mode, unknown_category_policy, override_stock]
             properties:
               file: { type: string, format: binary }
-              mode: { type: string, enum: [create, update, upsert] }
-              unknown_category_policy: { type: string, enum: [reject, create] }
+              mode: { type: string, enum: [create_only, update_only, upsert] }
+              unknown_category_policy: { type: string, enum: [reject, create, uncategorized] }
               override_stock: { type: boolean }
               confirm_stock_override: { type: boolean, description: Must be true when override_stock is true. }
             additionalProperties: false
@@ -1368,14 +1368,24 @@ components:
       additionalProperties: false
     ProductImport:
       type: object
-      required: [id, status, total_rows, accepted_rows, rejected_rows, created_at]
+      required: [id, status, original_filename, mode, unknown_category_policy, stock_override, stock_override_confirmed_at, total_rows, accepted_rows, warning_rows, rejected_rows, created_at, updated_at]
       properties:
         id: { $ref: '#/components/schemas/Ulid' }
         status: { type: string, enum: [completed, completed_with_rejections, failed] }
+        original_filename: { type: string }
+        mode: { type: string, enum: [create_only, update_only, upsert] }
+        unknown_category_policy: { type: string, enum: [reject, create, uncategorized] }
+        stock_override: { type: boolean }
+        stock_override_confirmed_at:
+          anyOf:
+            - { $ref: '#/components/schemas/UtcTimestamp' }
+            - { type: 'null' }
         total_rows: { type: integer, minimum: 0 }
         accepted_rows: { type: integer, minimum: 0 }
+        warning_rows: { type: integer, minimum: 0 }
         rejected_rows: { type: integer, minimum: 0 }
         created_at: { $ref: '#/components/schemas/UtcTimestamp' }
+        updated_at: { $ref: '#/components/schemas/UtcTimestamp' }
       additionalProperties: false
     Setting:
       type: object

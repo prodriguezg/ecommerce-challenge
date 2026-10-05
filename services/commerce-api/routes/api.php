@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
+use App\Http\Controllers\Api\V1\Admin\ProductImportController;
 use App\Http\Controllers\Api\V1\Admin\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Admin\TaxController;
 use App\Http\Controllers\Api\V1\AuthenticationController;
@@ -54,6 +55,10 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/products/{product}/inventory', [InventoryController::class, 'show'])->name('inventory.show');
             Route::get('/products/{product}/inventory-adjustments', [InventoryController::class, 'index'])->name('inventory-adjustments.index');
             Route::post('/products/{product}/inventory-adjustments', [InventoryController::class, 'store'])->name('inventory-adjustments.store');
+
+            Route::post('/product-imports', [ProductImportController::class, 'store'])->name('product-imports.store');
+            Route::get('/product-imports/{import}', [ProductImportController::class, 'show'])->name('product-imports.show');
+            Route::get('/product-imports/{import}/rejections.csv', [ProductImportController::class, 'download'])->name('product-imports.rejections');
 
             Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
             Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');

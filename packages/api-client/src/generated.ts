@@ -1050,10 +1050,19 @@ export interface components {
             id: components["schemas"]["Ulid"];
             /** @enum {string} */
             status: "completed" | "completed_with_rejections" | "failed";
+            original_filename: string;
+            /** @enum {string} */
+            mode: "create_only" | "update_only" | "upsert";
+            /** @enum {string} */
+            unknown_category_policy: "reject" | "create" | "uncategorized";
+            stock_override: boolean;
+            stock_override_confirmed_at: components["schemas"]["UtcTimestamp"] | null;
             total_rows: number;
             accepted_rows: number;
+            warning_rows: number;
             rejected_rows: number;
             created_at: components["schemas"]["UtcTimestamp"];
+            updated_at: components["schemas"]["UtcTimestamp"];
         };
         Setting: {
             /** @enum {string} */
@@ -1572,9 +1581,9 @@ export interface components {
                     /** Format: binary */
                     file: string;
                     /** @enum {string} */
-                    mode: "create" | "update" | "upsert";
+                    mode: "create_only" | "update_only" | "upsert";
                     /** @enum {string} */
-                    unknown_category_policy: "reject" | "create";
+                    unknown_category_policy: "reject" | "create" | "uncategorized";
                     override_stock: boolean;
                     /** @description Must be true when override_stock is true. */
                     confirm_stock_override?: boolean;
