@@ -1850,6 +1850,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     getCart: {
@@ -2037,6 +2038,7 @@ export interface operations {
         responses: {
             200: components["responses"]["Order"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     getGuestOrderStatus: {
@@ -2055,6 +2057,7 @@ export interface operations {
         responses: {
             200: components["responses"]["OrderStatus"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     receiveMockPaymentWebhook: {

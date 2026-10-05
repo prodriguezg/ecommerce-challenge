@@ -29,6 +29,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', fn (Request $request): Limit => $this->authenticationLimit($request, 'login'));
         RateLimiter::for('setup', fn (Request $request): Limit => $this->authenticationLimit($request, 'setup'));
         RateLimiter::for('registration', fn (Request $request): Limit => $this->authenticationLimit($request, 'registration'));
+        RateLimiter::for('guest-orders', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('api.checkout.guest_order_rate_limit'),
+        )->by(hash('sha256', (string) $request->query('guest_token')).'|'.$request->ip())
+            ->response(fn (Request $request, array $headers) => ProblemDetails::response(
+                $request,
+                429,
+                'Too many requests',
+                'The request rate limit has been exceeded.',
+                'rate_limit_exceeded',
+                headers: $headers,
+            )));
         RateLimiter::for('payment-webhooks', fn (Request $request): Limit => Limit::perMinute(
             (int) config('api.checkout.payment_webhook_rate_limit'),
         )->by($request->ip()));
