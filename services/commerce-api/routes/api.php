@@ -8,8 +8,11 @@ use App\Http\Controllers\Api\V1\Admin\TaxController;
 use App\Http\Controllers\Api\V1\AuthenticationController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerRegistrationController;
+use App\Http\Controllers\Api\V1\GuestOrderController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\ProductImageController;
 use App\Http\Controllers\Api\V1\SetupController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +26,9 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/categories', [CatalogController::class, 'categories'])->name('categories.index');
     Route::get('/shipping-methods', [CatalogController::class, 'shippingMethods'])->name('shipping-methods.index');
     Route::post('/cart/quote', [CartController::class, 'quote'])->middleware('throttle:60,1')->name('cart.quote');
+    Route::post('/checkouts', [CheckoutController::class, 'store'])->middleware('throttle:30,1')->name('checkouts.store');
+    Route::get('/guest-orders/{order}', [GuestOrderController::class, 'show'])->name('guest-orders.show');
+    Route::get('/guest-orders/{order}/status', [GuestOrderController::class, 'status'])->name('guest-orders.status');
 
     Route::get('/setup/status', [SetupController::class, 'status'])->name('setup.status');
     Route::post('/setup/admin', [SetupController::class, 'create'])
@@ -74,6 +80,9 @@ Route::prefix('v1')->group(function (): void {
             Route::delete('/cart/items/{product}', [CartController::class, 'deleteItem'])->name('cart.items.delete');
             Route::put('/cart/shipping-method', [CartController::class, 'setShippingMethod'])->name('cart.shipping-method.set');
             Route::post('/cart/merge', [CartController::class, 'merge'])->name('cart.merge');
+            Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+            Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+            Route::get('/orders/{order}/status', [OrderController::class, 'status'])->name('orders.status');
         });
     });
 });

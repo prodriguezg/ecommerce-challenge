@@ -39,7 +39,13 @@ services:
       DB_USERNAME: ${MYSQL_USER}
       FILESYSTEM_DISK: local
       LOG_CHANNEL: stderr
+      GUEST_ORDER_LINK_DAYS: ${GUEST_ORDER_LINK_DAYS:-30}
+      ORDER_NUMBER_PREFIX: ${ORDER_NUMBER_PREFIX:-ORD-}
+      ORDER_NUMBER_START: ${ORDER_NUMBER_START:-100001}
+      PAYMENT_API_URL: http://payment-api:8000/api/v1/payments
+      PAYMENT_CALLBACK_URL: http://commerce-api:8000/api/v1/payments/webhooks/mock
       QUEUE_CONNECTION: database
+      RESERVATION_TIMEOUT_SECONDS: ${RESERVATION_TIMEOUT_SECONDS:-120}
       SESSION_DRIVER: database
     depends_on:
       mysql:
