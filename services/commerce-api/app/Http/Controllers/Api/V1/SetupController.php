@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\SetupAdminRequest;
 use App\Http\Resources\PrincipalResource;
 use App\Http\Responses\ProblemDetails;
 use App\Models\User;
+use App\Services\AdminAuditLogger;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class SetupController extends Controller
 {
+    public function __construct(private readonly AdminAuditLogger $audit) {}
+
     public function status(): JsonResponse
     {
         return response()->json([
@@ -31,12 +34,23 @@ class SetupController extends Controller
                     return null;
                 }
 
-                return User::query()->create([
+                $user = User::query()->create([
                     'role' => UserRole::Admin,
                     'name' => $request->validated('name'),
                     'email' => $request->validated('email'),
                     'password_hash' => $request->validated('password'),
                 ]);
+
+                $this->audit->record(
+                    $request,
+                    'administrator.created',
+                    $user,
+                    null,
+                    ['role' => UserRole::Admin->value],
+                    $user,
+                );
+
+                return $user;
             });
         } catch (UniqueConstraintViolationException) {
             $user = null;

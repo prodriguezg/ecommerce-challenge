@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\ManualReviewController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductImportController;
+use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Http\Controllers\Api\V1\Admin\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Admin\TaxController;
 use App\Http\Controllers\Api\V1\AuthenticationController;
@@ -55,6 +57,10 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
             Route::get('/manual-reviews', [ManualReviewController::class, 'index'])->name('manual-reviews.index');
             Route::post('/manual-reviews/{review}/resolve', [ManualReviewController::class, 'resolve'])->name('manual-reviews.resolve');
+            Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+            Route::put('/settings/{key}', [SettingController::class, 'update'])->name('settings.update');
+            Route::delete('/settings/{key}', [SettingController::class, 'destroy'])->name('settings.destroy');
+            Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
             Route::get('/products', [ProductController::class, 'index'])->name('products.index');
             Route::post('/products', [ProductController::class, 'store'])->name('products.store');
             Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
