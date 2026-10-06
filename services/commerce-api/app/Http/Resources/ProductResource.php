@@ -25,9 +25,11 @@ class ProductResource extends JsonResource
             'description' => $this->resource->description ?? '',
             'price' => (new Money($this->resource->price, $this->resource->currency->code))
                 ->roundedAmount($this->resource->currency->minor_units),
+            'weight_kg' => number_format((float) $this->resource->weight_kg, 4, '.', ''),
             'price_excludes_tax' => true,
             'currency' => $this->resource->currency->code,
             'category' => $this->resource->category === null ? null : new CategoryResource($this->resource->category),
+            'tax_id' => $this->resource->tax_id,
             'image_url' => $this->resource->image_path === null
                 ? '/images/product-placeholder.svg'
                 : Storage::url($this->resource->image_path),

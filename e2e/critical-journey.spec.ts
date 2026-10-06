@@ -38,25 +38,13 @@ test.describe.serial('critical commerce journey', () => {
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByRole('cell', { name: 'Standard tax' })).toBeVisible()
 
-    const taxId = await page.evaluate(async () => {
-      const response = await fetch('/api/v1/admin/taxes', { credentials: 'include' })
-      const taxes = await response.json() as Array<{ id: string; name: string }>
-      return taxes.find(({ name }) => name === 'Standard tax')?.id
-    })
-    expect(taxId).toBeTruthy()
-
     await page.goto('/admin/shipping')
     await page.getByRole('textbox', { name: /^name/i }).fill('Courier')
     await page.getByRole('spinbutton', { name: /^amount/i }).fill('5.00')
-    await page.getByRole('textbox', { name: /^tax id/i }).fill(taxId!)
+    await page.getByRole('combobox', { name: 'Tax (optional)' }).click()
+    await page.getByRole('option', { name: 'Standard tax (10%)' }).click()
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByRole('cell', { name: 'Courier' })).toBeVisible()
-
-    const categoryId = await page.evaluate(async () => {
-      const response = await fetch('/api/v1/admin/categories', { credentials: 'include' })
-      const categories = await response.json() as Array<{ id: string; name: string }>
-      return categories.find(({ name }) => name === 'Trail gear')?.id
-    })
 
     await page.goto('/admin/products')
     await page.getByRole('button', { name: 'Add product' }).click()
@@ -64,11 +52,20 @@ test.describe.serial('critical commerce journey', () => {
     await page.getByRole('textbox', { name: /^SKU/i }).fill('E2E-LANTERN-15')
     await page.getByRole('textbox', { name: /^Description/i }).fill('A deterministic browser-test product.')
     await page.getByRole('spinbutton', { name: /^Price excluding tax/i }).fill('20.00')
+    await page.getByRole('spinbutton', { name: /^Weight \(kg\)/i }).fill('1.25')
     await page.getByRole('spinbutton', { name: /^Initial stock on hand/i }).fill('5')
-    await page.getByRole('textbox', { name: /^Category ID/i }).fill(categoryId!)
-    await page.getByRole('textbox', { name: /^Tax ID/i }).fill(taxId!)
+    await page.getByRole('combobox', { name: 'Category (optional)' }).click()
+    await page.getByRole('option', { name: 'Trail gear' }).click()
+    await page.getByRole('combobox', { name: 'Tax (optional)' }).click()
+    await page.getByRole('option', { name: 'Standard tax (10%)' }).click()
     await page.getByRole('button', { name: 'Create product' }).click()
     await expect(page.getByRole('cell', { name: /All-weather lantern/ })).toBeVisible()
+
+    const productRow = page.getByRole('row', { name: /All-weather lantern/ })
+    await productRow.getByRole('button', { name: 'Edit' }).click()
+    await page.getByRole('textbox', { name: 'Description' }).fill('An updated deterministic browser-test product.')
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page.getByRole('heading', { name: 'Edit product' })).not.toBeVisible()
 
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL(/\/login$/)
@@ -104,5 +101,19 @@ test.describe.serial('critical commerce journey', () => {
     await page.goto('/')
     await expect(page.getByText('All-weather lantern', { exact: true })).toBeVisible()
     expect(await seriousAccessibilityViolations(page)).toEqual([])
+  })
+
+  test('the administrator can delete a product', async ({ page }) => {
+    await page.goto('/login')
+    await page.getByLabel('Email address').fill(administrator.email)
+    await page.getByLabel('Password').fill(administrator.password)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.goto('/admin/products')
+
+    const productRow = page.getByRole('row', { name: /All-weather lantern/ })
+    await productRow.getByRole('button', { name: 'Delete' }).click()
+    await expect(page.getByRole('heading', { name: 'Delete product?' })).toBeVisible()
+    await page.getByRole('button', { name: 'Delete product' }).click()
+    await expect(productRow).not.toBeVisible()
   })
 })

@@ -35,9 +35,17 @@ class AdminCatalogControllerTest extends TestCase
     {
         $response = $this->postJson('/api/v1/admin/products', $this->productPayload());
 
-        $response->assertCreated()->assertJsonPath('sku', 'Demo-1')->assertJsonPath('name', 'Demo Product');
+        $response->assertCreated()
+            ->assertJsonPath('sku', 'Demo-1')
+            ->assertJsonPath('name', 'Demo Product')
+            ->assertJsonPath('price', '19.99')
+            ->assertJsonPath('weight_kg', '1.2500')
+            ->assertJsonPath('price_excludes_tax', true)
+            ->assertJsonPath('tax_id', null);
         $product = Product::firstOrFail();
         $this->assertSame('DEMO-1', $product->normalized_sku);
+        $this->assertSame('19.9900', $product->price);
+        $this->assertSame('1.2500', $product->weight_kg);
         $this->assertSame(7, $product->inventory?->stock_on_hand);
         $this->assertDatabaseHas('product_sku_reservations', ['normalized_sku' => 'DEMO-1']);
         $this->assertDatabaseHas('inventory_adjustments', ['product_id' => $product->getKey(), 'new_quantity' => 7]);
@@ -49,6 +57,25 @@ class AdminCatalogControllerTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         $this->postJson('/api/v1/admin/products', $this->productPayload())->assertForbidden();
+    }
+
+    public function test_admin_can_create_and_update_a_product_with_an_integer_price_and_editable_weight(): void
+    {
+        $product = $this->createProduct(['price' => '100', 'weight_kg' => '2']);
+
+        $this->assertSame('100.0000', $product->price);
+        $this->assertSame('2.0000', $product->weight_kg);
+
+        $this->withHeader('If-Match-Version', '1')->putJson(
+            "/api/v1/admin/products/{$product->getKey()}",
+            $this->productPayload(['price' => '125.5', 'weight_kg' => '2.75']),
+        )->assertOk()
+            ->assertJsonPath('price', '125.50')
+            ->assertJsonPath('weight_kg', '2.7500');
+
+        $product->refresh();
+        $this->assertSame('125.5000', $product->price);
+        $this->assertSame('2.7500', $product->weight_kg);
     }
 
     public function test_stale_product_update_does_not_modify_the_product(): void
@@ -142,6 +169,7 @@ class AdminCatalogControllerTest extends TestCase
             'name' => '  Demo Product  ',
             'description' => 'Description',
             'price' => '19.99',
+            'weight_kg' => '1.25',
             'currency' => 'USD',
             'category_id' => null,
             'tax_id' => null,

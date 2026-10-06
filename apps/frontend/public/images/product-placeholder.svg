@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="title description">
+  <title id="title">No product image available</title>
+  <desc id="description">A neutral placeholder illustration of a landscape and package.</desc>
+  <rect width="800" height="600" fill="#f3f6f9"/>
+  <rect x="176" y="112" width="448" height="320" rx="24" fill="#ffffff" stroke="#cbd5e1" stroke-width="12"/>
+  <circle cx="286" cy="214" r="38" fill="#dbe5f1"/>
+  <path d="M216 372l116-116 78 78 54-54 120 92H216z" fill="#dbe5f1"/>
+  <path d="M320 466h160" stroke="#94a3b8" stroke-width="12" stroke-linecap="round"/>
+  <text x="400" y="520" fill="#64748b" font-family="Arial, sans-serif" font-size="30" text-anchor="middle">No image available</text>
+</svg>
