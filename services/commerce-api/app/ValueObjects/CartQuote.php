@@ -22,7 +22,7 @@ final readonly class CartQuote
     public function toArray(): array
     {
         $subtotal = BigDecimal::zero();
-        $tax = BigDecimal::zero();
+        $productTax = BigDecimal::zero();
         $responseLines = [];
         $requiresConfirmation = false;
 
@@ -30,7 +30,7 @@ final readonly class CartQuote
             $lineSubtotal = BigDecimal::of($line['unit_price'])->multipliedBy($line['quantity']);
             $lineTax = $this->taxFor($lineSubtotal, $line['tax_rate']);
             $subtotal = $subtotal->plus($lineSubtotal);
-            $tax = $tax->plus($lineTax);
+            $productTax = $productTax->plus($lineTax);
             $requiresConfirmation = $requiresConfirmation || ! $line['available'] || $line['adjustment'] !== null;
 
             $responseLine = [
@@ -52,12 +52,15 @@ final readonly class CartQuote
         }
 
         $shipping = BigDecimal::of($this->shippingAmount);
-        $tax = $tax->plus($this->taxFor($shipping, $this->shippingTaxRate));
+        $shippingTax = $this->taxFor($shipping, $this->shippingTaxRate);
+        $tax = $productTax->plus($shippingTax);
         $total = $subtotal->plus($shipping)->plus($tax);
 
         return [
             'lines' => $responseLines,
             'subtotal' => $this->rounded((string) $subtotal),
+            'product_tax' => $this->rounded((string) $productTax),
+            'shipping_tax' => $this->rounded((string) $shippingTax),
             'tax' => $this->rounded((string) $tax),
             'shipping' => $this->rounded((string) $shipping),
             'total' => $this->rounded((string) $total),
