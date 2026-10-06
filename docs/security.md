@@ -1,5 +1,10 @@
 # Security Specification
 
+The [reviewer guide](reviewer-guide.md#demo-limitations-and-production-gaps)
+separates delivered demo controls from production gaps. Implementation and test
+evidence is indexed in
+[requirements-traceability.md](requirements-traceability.md#security-specification).
+
 ## 1. Scope
 
 This document defines the demo's minimum security controls and records production gaps. It is not a penetration-test report, compliance attestation, or complete threat model. Penetration testing and a formal security assessment are required before production.

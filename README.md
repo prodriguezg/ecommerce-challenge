@@ -1,10 +1,10 @@
 # E-commerce Code Challenge
 
-This repository contains the product and software-design specifications plus the runnable monorepo foundation for the e-commerce code challenge. Docker Compose starts a React frontend, Laravel commerce API, Laravel mock payment API and queue worker, MySQL, Redis, and a separate reservation worker. Business capabilities are being added incrementally through the linked GitHub issues.
+This repository contains a complete local demonstration of the e-commerce code challenge. Docker Compose starts the React storefront/admin application, Laravel commerce API, Laravel mock payment API and queue worker, MySQL, Redis, and a separate reservation-expiration worker.
 
 ## Challenge coverage
 
-| Challenge requirement | Planned solution |
+| Challenge requirement | Implemented solution |
 | --- | --- |
 | Local database | Current stable/LTS MySQL with InnoDB |
 | Product CRUD | Admin-only React UI and versioned REST API |
@@ -23,6 +23,9 @@ This repository contains the product and software-design specifications plus the
 - [Data model](docs/data-model.md)
 - [API conventions and endpoint inventory](docs/api.md)
 - [Testing and CI strategy](docs/testing.md)
+- [Reviewer and operator guide](docs/reviewer-guide.md)
+- [Verification coverage and accessibility checklist](docs/verification.md)
+- [Requirements traceability](docs/requirements-traceability.md)
 - [Security specification](docs/security.md)
 - [Architecture decision records](docs/decisions/README.md)
 
@@ -35,7 +38,7 @@ The challenge-provided example was downloaded on **October 1, 2026**.
 
 The repository copy is preserved as a sample import fixture and is not imported automatically. It intentionally contains rows that should be rejected by the agreed validation rules. Product images are not supported in CSV imports for this demo.
 
-## Planned payment test numbers
+## Payment test numbers
 
 Only these exact simulation numbers will be accepted:
 
@@ -61,12 +64,14 @@ The foundation uses Laravel 13 on PHP 8.5, React 19, TypeScript 5.9, Vite 8, MyS
 
 ## Reviewer workflow
 
+Prerequisites are Docker Engine with Compose v2, Git, and free host ports `8080` (the application). From a fresh clone:
+
 ```bash
 cp .env.example .env
-docker compose up --build
+docker compose up --detach --build --wait
 ```
 
-Open <http://localhost:8080>. The current foundation page confirms that the stack is running. The commerce startup migrates and runs the application seeder; the current seeder is empty, so no users or products are created. Reference records and first-run setup are delivered by the database and authentication issues.
+Open <http://localhost:8080>. A clean database redirects the first visit to `/setup`, where the sole administrator is created. Startup runs migrations and seeds only USD, the 10% `Standard` tax, and the `Ground`/`Air` shipping methods; it never creates users or products. See the [reviewer guide](docs/reviewer-guide.md) for the verified first-run, catalog, CSV, checkout, and manual-review walkthrough.
 
 Service boundaries are intentionally narrow:
 
@@ -82,49 +87,24 @@ Stop containers while preserving data with `docker compose down`. The following 
 docker compose down --volumes
 ```
 
-All local defaults live in `.env.example`. Copy it to `.env`, then change reservation, worker, guest-link, payment-delay, CSV, order-number, port, or local credential settings there before starting Compose. These defaults are intentionally unsuitable for production.
+All local defaults live in `.env.example`. Copy it to `.env`, then change reservation, worker, guest-link, payment-delay, CSV, order-number, rate-limit, port, or local credential settings before starting Compose. The complete configuration table is in the [reviewer guide](docs/reviewer-guide.md#configuration-reference). These defaults are intentionally unsuitable for production.
 
 The checked-in environment uses HTTP intentionally and therefore sets `SECURITY_REQUIRE_TLS=false` and `SESSION_SECURE_COOKIE=false`. A production-like deployment must use an HTTPS `APP_URL`, set both values to `true`, retain HTTP-only cookies, provide explicit same-origin CORS configuration, rotate every credential, and set `API_DOCS_ENABLED=false`. The commerce service refuses to boot in required-TLS mode when the URL or cookie flags are unsafe.
 
 ## Host-native workflow
 
-Install PHP 8.5, Composer 2.9, Node.js 24, npm 11, and Docker. Start only the infrastructure, bound to loopback:
-
-```bash
-cp .env.example .env
-docker compose -f compose.yaml -f compose.host.yaml up -d mysql redis
-composer install --working-dir=services/commerce-api
-composer install --working-dir=services/payment-api
-npm install
-cp services/commerce-api/.env.example services/commerce-api/.env
-cp services/payment-api/.env.example services/payment-api/.env
-php services/commerce-api/artisan key:generate
-php services/payment-api/artisan key:generate
-php services/commerce-api/artisan migrate --seed
-```
-
-Run each long-lived process in its own terminal:
-
-```bash
-php services/commerce-api/artisan serve --host=127.0.0.1 --port=8000
-php services/commerce-api/artisan schedule:work
-php services/payment-api/artisan serve --host=127.0.0.1 --port=8001
-php services/payment-api/artisan queue:work redis --sleep=1 --tries=4 --timeout=10
-npm run dev
-```
-
-The reservation schedule remains a placeholder until its implementation issue lands. Payment provider state and delayed callbacks are intentionally ephemeral: restarting Redis or the payment container can lose idempotency records and pending callbacks.
+The [host-native setup](docs/reviewer-guide.md#host-native-setup) documents exact prerequisites, environment values, migrations, reference seeds, and all five long-running processes. It uses Compose only for loopback-bound MySQL and Redis. Payment provider state and delayed callbacks are intentionally ephemeral: restarting Redis or the payment process can lose idempotency records and pending callbacks.
 
 ## Checks
 
-Install dependencies, then run all currently configured checks:
+Install dependencies, then run the formatting and complete application check suites:
 
 ```bash
 ./scripts/format.sh
 ./scripts/check.sh
 ```
 
-`check.sh` validates both Composer projects, checks PHP formatting, runs both PHPUnit suites, lints/type-checks/tests/builds the npm workspaces, and validates the Compose model.
+`check.sh` validates both Composer projects, documentation links, PHP formatting/static analysis/tests, frontend lint/type/tests/build, OpenAPI contracts and generated-output drift, and the Compose model. The [verification command matrix](docs/reviewer-guide.md#verification-command-matrix) gives individual commands for formatting, unit/feature/MySQL integration, contract, browser, accessibility, security, container, and build checks.
 
 CI additionally treats any detected secret, any Composer advisory, npm high/critical advisories, and Trivy high/critical repository or container findings as blocking. Unfixed image findings are reported for triage but do not block until an upstream fix exists.
 

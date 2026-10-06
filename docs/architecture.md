@@ -1,5 +1,9 @@
 # Architecture
 
+Operational startup details are in the [reviewer guide](reviewer-guide.md), and
+implementation evidence is indexed in
+[requirements-traceability.md](requirements-traceability.md#architecture).
+
 ## 1. Architectural intent
 
 The implementation is a monorepo with independently containerized runtime responsibilities. The main commerce backend uses conventional Laravel layers and remains a single application rather than being split into business microservices. The mock payment provider is a separate service because the challenge specifically benefits from demonstrating an asynchronous external boundary.
