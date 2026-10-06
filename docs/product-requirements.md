@@ -160,6 +160,32 @@ Keeping inventory separate eases a future transition to multiple warehouses or s
 - Images are not supported. Imported products use the placeholder until an admin uploads a picture.
 - Defaults are 5 MB and 10,000 data rows; both limits are environment-configurable. Exceeding either rejects the whole file.
 
+Numeric CSV fields trim surrounding whitespace and accept ungrouped digits or
+standard thousands commas (a first group of 1–3 digits followed by groups of
+exactly three digits). Quote CSV cells containing commas. Valid grouping is
+checked before separators are removed; normalized values are persisted without
+currency symbols or grouping commas, without rounding or truncation.
+
+- `price`: non-negative integers or 1–2 decimal places, with one optional leading
+  `$` followed by optional whitespace. Examples: `12`, `12.5`, `$ 12.50`,
+  `"$1,234.56"`. Maximum: `999999999999999.9999` (database range; the CSV format
+  still permits at most two decimal places).
+- `weight_kg`: non-negative integers or 1–4 decimal places, without `$`.
+  Examples: `2`, `2.5000`, `"1,234.5678"`. Maximum: `99999999.9999`.
+- `stock`: non-negative integers only, without `$` or decimal places.
+  Examples: `0`, `12`, `"1,000"`. Maximum: `4294967295`.
+
+Empty or whitespace-only values, signs, negatives, exponent notation, decimal
+commas, `NaN`, `Infinity`, malformed grouping (such as `12,34`, `1,23,456`, or
+`1,0000`), excess precision, and out-of-range values reject only their row.
+Rejection CSV reasons are exactly `Invalid price value`, `Invalid weight_kg
+value`, and `Invalid stock value`; all applicable reasons appear once per row.
+Numeric validation also applies to stock when existing stock is preserved.
+When stock is written, its audit adjustment must also fit the existing signed
+32-bit `delta` range (`-2147483648` to `2147483647`); larger changes reject the
+row with `Invalid stock value`. New-product stock therefore cannot exceed
+`2147483647` because its initial adjustment starts from zero.
+
 Bulk image ingestion is a future Product and architecture decision. Options include controlled remote ingestion and archive-based uploads.
 
 ### 6.2 Import choices
@@ -174,7 +200,7 @@ Rows matching soft-deleted SKUs are always rejected.
 
 The admin must also choose an unknown-category policy:
 
-- Create the missing category.
+- **Create missing categories** (`create`): create every missing category encountered in valid rows.
 - Import the product as Uncategorized and record a warning.
 - Reject the row.
 

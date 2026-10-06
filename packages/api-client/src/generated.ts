@@ -645,7 +645,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Processes a bounded CSV synchronously. File-level failures reject the import; valid rows commit independently and invalid rows are retained as sanitized rejections. */
+        /** @description Processes a bounded CSV synchronously. File-level failures reject the import; valid rows commit independently and invalid rows are retained as sanitized rejections. Numeric fields trim surrounding whitespace and accept ungrouped digits or standard thousands commas (first group 1–3 digits, subsequent groups exactly three digits). CSV cells containing commas must be quoted. Price accepts integers or 1–2 decimal places and one optional leading dollar sign with optional whitespace after it (12, 12.5, $ 12.50, "$1,234.56"). Weight_kg accepts integers or 1–4 decimal places (2, 2.5000, "1,234.5678"). Stock accepts integers only (0, 12, "1,000"). Weight_kg and stock do not accept dollar signs. Normalized values are persisted without currency symbols or grouping separators, without rounding or truncation. Values must be non-negative and within database ranges (price at most 999999999999999.9999, weight_kg at most 99999999.9999, stock at most 4294967295). When stock is written, its audit adjustment delta must fit -2147483648 to 2147483647; new-product stock is therefore at most 2147483647. Larger changes also reject the row with Invalid stock value. Empty values, signs, negatives, exponents, decimal commas, NaN, Infinity, malformed grouping, excess decimal places, and out-of-range values reject only their row with the exact reasons Invalid price value, Invalid weight_kg value, or Invalid stock value. Every applicable numeric reason appears once in the rejection CSV. Numeric validation applies even when CSV stock is ignored for existing products. */
         post: operations["createAdminProductImport"];
         delete?: never;
         options?: never;
@@ -1110,7 +1110,10 @@ export interface components {
             original_filename: string;
             /** @enum {string} */
             mode: "create_only" | "update_only" | "upsert";
-            /** @enum {string} */
+            /**
+             * @description create creates every missing category encountered in valid rows; reject rejects unknown categories; uncategorized imports without a category and records a warning.
+             * @enum {string}
+             */
             unknown_category_policy: "reject" | "create" | "uncategorized";
             stock_override: boolean;
             stock_override_confirmed_at: components["schemas"]["UtcTimestamp"] | null;
@@ -1649,7 +1652,10 @@ export interface components {
                     file: string;
                     /** @enum {string} */
                     mode: "create_only" | "update_only" | "upsert";
-                    /** @enum {string} */
+                    /**
+                     * @description create creates every missing category encountered in valid rows; reject rejects unknown categories; uncategorized imports without a category and records a warning.
+                     * @enum {string}
+                     */
                     unknown_category_policy: "reject" | "create" | "uncategorized";
                     override_stock: boolean;
                     /** @description Must be true when override_stock is true. */

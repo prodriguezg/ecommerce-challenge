@@ -14,6 +14,7 @@ use App\Models\Inventory;
 use App\Models\InventoryAdjustment;
 use App\Models\Product;
 use App\Models\User;
+use Brick\Math\BigDecimal;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +73,8 @@ class ProductCsvImporter
         $warningCount = 0;
 
         foreach ($rows as $row) {
-            $errors = $this->rowErrors($row['values']);
+            [$values, $numericErrors] = $this->normalizeNumbers($row['values']);
+            $errors = [...$numericErrors, ...$this->rowErrors($values)];
             $normalizedSku = Str::upper(trim($row['values']['sku'] ?? ''));
             if ($normalizedSku !== '' && isset($duplicateSkus[$normalizedSku])) {
                 $errors[] = 'SKU occurs more than once in this file; every occurrence was rejected.';
@@ -80,7 +82,7 @@ class ProductCsvImporter
 
             if ($errors === []) {
                 try {
-                    $warning = $this->processRow($row['values'], $mode, $categoryPolicy, $overrideStock, $currencyId, $actor, $import);
+                    $warning = $this->processRow($values, $mode, $categoryPolicy, $overrideStock, $currencyId, $actor, $import);
                     $importedCount++;
                     $warningCount += (int) $warning;
 
@@ -203,6 +205,40 @@ class ProductCsvImporter
 
     /**
      * @param  array<string, string>  $row
+     * @return array{0: array<string, string>, 1: list<string>}
+     */
+    private function normalizeNumbers(array $row): array
+    {
+        $errors = [];
+        foreach ([
+            'price' => [2, '999999999999999.9999'],
+            'weight_kg' => [4, '99999999.9999'],
+            'stock' => [0, '4294967295'],
+        ] as $field => [$decimalPlaces, $maximum]) {
+            $value = trim($row[$field] ?? '');
+            if ($field === 'price' && str_starts_with($value, '$')) {
+                $value = trim(substr($value, 1));
+            }
+            $fraction = $decimalPlaces === 0 ? '' : '(?:\.[0-9]{1,'.$decimalPlaces.'})?';
+            if (preg_match('/\A(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)'.$fraction.'\z/', $value) !== 1) {
+                $errors[] = 'Invalid '.$field.' value';
+
+                continue;
+            }
+            $value = str_replace(',', '', $value);
+            if (BigDecimal::of($value)->compareTo($maximum) > 0) {
+                $errors[] = 'Invalid '.$field.' value';
+
+                continue;
+            }
+            $row[$field] = $value;
+        }
+
+        return [$row, $errors];
+    }
+
+    /**
+     * @param  array<string, string>  $row
      * @return list<string>
      */
     private function rowErrors(array $row): array
@@ -212,9 +248,6 @@ class ProductCsvImporter
             'sku' => ['required', 'string', 'max:100', 'not_regex:/^\s*$/'],
             'description' => ['nullable', 'string', 'max:5000'],
             'category' => ['nullable', 'string', 'max:200'],
-            'price' => ['required', 'decimal:2', 'min:0', 'max:999999999999999.9999'],
-            'stock' => ['required', 'integer', 'min:0', 'max:4294967295'],
-            'weight_kg' => ['required', 'decimal:0,4', 'min:0', 'max:99999999.9999'],
         ]);
         $errors = $validator->errors()->all();
         if (isset($row['__column_error'])) {
@@ -254,6 +287,7 @@ class ProductCsvImporter
             ];
 
             if ($product === null) {
+                $this->validateStockDelta(0, (int) $row['stock']);
                 $product = Product::create($attributes + ['currency_id' => $currencyId, 'tax_id' => null, 'version' => 1]);
                 DB::table('product_sku_reservations')->insert(['normalized_sku' => $product->normalized_sku, 'product_id' => $product->getKey(), 'created_at' => now()]);
                 $inventory = $product->inventory()->create(['stock_on_hand' => (int) $row['stock'], 'version' => 1]);
@@ -269,6 +303,7 @@ class ProductCsvImporter
                         $this->rejectRow('Stock override cannot be below the active reserved quantity.');
                     }
                     $previousQuantity = (int) $inventory->stock_on_hand;
+                    $this->validateStockDelta($previousQuantity, $newQuantity);
                     $inventory->fill(['stock_on_hand' => $newQuantity, 'version' => $inventory->version + 1])->save();
                     $this->recordAdjustment($inventory, $product, $previousQuantity, $newQuantity, $actor, $import, 'Confirmed stock override from product CSV import.');
                 }
@@ -299,6 +334,14 @@ class ProductCsvImporter
         $category = Category::create(['name' => $name, 'slug' => Str::slug($name).'-'.Str::lower((string) Str::ulid()), 'version' => 1]);
 
         return [$category->getKey(), false];
+    }
+
+    private function validateStockDelta(int $previousQuantity, int $newQuantity): void
+    {
+        $delta = $newQuantity - $previousQuantity;
+        if ($delta < -2147483648 || $delta > 2147483647) {
+            $this->rejectRow('Invalid stock value');
+        }
     }
 
     private function recordAdjustment(Inventory $inventory, Product $product, int $previousQuantity, int $newQuantity, User $actor, Import $import, string $note): void

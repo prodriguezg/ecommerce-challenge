@@ -198,18 +198,27 @@ window for customer/guest checks so the roles remain visibly separate.
 
 1. As the administrator, open **Imports**.
 2. Choose `docs/examples/code-challenge-products.csv`.
-3. Keep **Create only**. Choose **Create category** if you want valid rows to
+3. Keep **Create only**. Choose **Create missing categories** if you want valid rows to
    populate the catalog; **Reject row** deliberately rejects unknown categories.
 4. Leave stock override off for the first import and submit.
 5. Review accepted/warning/rejected counts. The sample intentionally includes
-   invalid values such as `$29.99` and `free`; a zero-rejection result is not
+   invalid values such as `free` and malformed numbers; a zero-rejection result is not
    expected.
 6. Select **Download rejected rows**. The CSV preserves the original columns,
    adds `reason`, and neutralizes spreadsheet-formula prefixes.
 
 The file is UTF-8 and accepts only `name`, `sku`, `description`, `category`,
 `price`, `stock`, `weight_kg`, plus an ignored `reason` column. Valid rows commit
-independently.
+independently. Numeric cells accept surrounding whitespace and valid thousands
+commas; cells containing commas must be quoted. `price` accepts integers or
+1–2 decimal places and an optional leading `$` (including `$ 12.50`).
+`weight_kg` accepts integers or 1–4 decimal places; `stock` accepts integers
+only. Neither weight nor stock accepts `$`. Values remain non-negative and
+within their database ranges, including the signed 32-bit audit delta when
+stock changes (new-product stock is at most `2147483647`). Malformed grouping,
+empty values, signs, exponents, and excess precision reject only the affected row with exact
+`Invalid price value`, `Invalid weight_kg value`, or `Invalid stock value`
+reasons, aggregated once each. See the [full numeric import contract](product-requirements.md#61-file-contract).
 
 ### 3. Set up and inspect the catalog
 

@@ -192,6 +192,21 @@ describe('application routing and critical interactions', () => {
     expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ name: 'Courier', amount: '5.00', tax_id: taxes[0].id })
   })
 
+  it('submits the existing create policy from Create missing categories', async () => {
+    mockApi({ id: '01ADMIN', name: 'Admin', email: 'admin@example.com', role: 'admin' }); renderApp('/admin/imports')
+    const file = new File(['name,sku,price,stock,weight_kg\nDesk,DESK-1,249,2,10\n'], 'products.csv', { type: 'text/csv' })
+    fireEvent.change(await screen.findByLabelText('Choose CSV file'), { target: { files: [file] } })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Unknown category policy' }))
+    expect(screen.getAllByRole('option')).toHaveLength(3)
+    fireEvent.click(screen.getByRole('option', { name: 'Create missing categories' }))
+    fireEvent.submit(screen.getByRole('button', { name: 'Import CSV' }).closest('form')!)
+
+    expect(await screen.findByText('Import complete')).toBeInTheDocument()
+    const call = vi.mocked(fetch).mock.calls.find(([input, init]) => String(input).endsWith('/admin/product-imports') && init?.method === 'POST')
+    const body = call?.[1]?.body as FormData
+    expect(body.get('unknown_category_policy')).toBe('create')
+  })
+
   it.each([
     { override: false, expectedOverride: '0', expectedConfirmation: null },
     { override: true, expectedOverride: '1', expectedConfirmation: '1' },
