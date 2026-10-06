@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { CssBaseline, ThemeProvider } from '@mui/material'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -40,7 +40,7 @@ function mockApi(principal: unknown = null, setupAvailable = false) {
     if (url.endsWith('/categories')) return response([])
     if (url.endsWith('/admin/taxes')) return response(taxes)
     if (url.includes('/admin/orders')) return response({ items: [], pagination: { page: 1, per_page: 50, total: 0, total_pages: 0 } })
-    if (url.includes('/cart')) return response({ lines: [], subtotal: '0.00', tax: '0.00', shipping: '0.00', total: '0.00', currency: 'USD', requires_confirmation: false })
+    if (url.includes('/cart')) return response({ lines: [], subtotal: '0.00', product_tax: '0.00', shipping_tax: '0.00', tax: '0.00', shipping: '0.00', total: '0.00', currency: 'USD', requires_confirmation: false })
     return response({}, 404)
   }))
 }
@@ -63,6 +63,35 @@ describe('application routing and critical interactions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add to cart' }))
     expect(await screen.findByText('1', { selector: '.MuiBadge-badge' })).toBeInTheDocument()
     expect(screen.getByRole('searchbox', { name: /search products/i })).toBeInTheDocument()
+  })
+
+  it.each([
+    { productTax: '0.00', shippingTax: '1.50', tax: '1.50', total: '50.99' },
+    { productTax: '3.45', shippingTax: '0.00', tax: '3.45', total: '52.94' },
+    { productTax: '3.45', shippingTax: '1.50', tax: '4.95', total: '54.44' },
+    { productTax: '0.00', shippingTax: '0.00', tax: '0.00', total: '49.49' },
+  ])('shows separate checkout tax rows for product $productTax and shipping $shippingTax', async ({ productTax, shippingTax, tax, total }) => {
+    mockApi()
+    const fallback = fetch
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/shipping-methods')) return response([{ id: '01SHIPPING', name: 'Ground', amount: '15.00', currency: 'USD', tax_id: null, active: true, version: 1 }])
+      if (url.endsWith('/cart/quote')) return response({
+        lines: [{ product_id: product.id, name: product.name, quantity: 1, unit_price: '34.49', line_subtotal: '34.49', currency: 'USD', available: true, stock_limit: 5 }],
+        subtotal: '34.49', shipping: '15.00', product_tax: productTax, shipping_tax: shippingTax, tax, total, currency: 'USD', requires_confirmation: false,
+      })
+      return fallback(input, init)
+    }))
+    localStorage.setItem('northstar-cart-v1', JSON.stringify({ version: 1, lines: [{ product, quantity: 1 }] }))
+    renderApp('/checkout')
+
+    const productRow = (await screen.findByText('Product tax')).parentElement!
+    const shippingRow = screen.getByText('Shipping tax').parentElement!
+    await waitFor(() => expect(within(productRow).getByText(`USD ${productTax}`)).toBeVisible())
+    expect(within(shippingRow).getByText(`USD ${shippingTax}`)).toBeVisible()
+    expect(screen.queryByText('Tax', { exact: true })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: `USD ${total}` })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Place order (simulated)' })).toBeEnabled()
   })
 
   it('routes the sole first-run state to administrator setup', async () => {

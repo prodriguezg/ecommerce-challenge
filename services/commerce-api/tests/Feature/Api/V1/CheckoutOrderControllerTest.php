@@ -15,9 +15,11 @@ use App\Models\Product;
 use App\Models\ShippingMethod;
 use App\Models\Tax;
 use App\Models\User;
+use Brick\Math\BigDecimal;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class CheckoutOrderControllerTest extends TestCase
@@ -41,6 +43,16 @@ class CheckoutOrderControllerTest extends TestCase
             ['product_id' => $first->id, 'quantity' => 2],
             ['product_id' => $second->id, 'quantity' => 1],
         ]);
+
+        $this->postJson('/api/v1/cart/quote', [
+            'lines' => $payload['lines'],
+            'shipping_method_id' => $shipping->id,
+        ])->assertOk()
+            ->assertJsonPath('subtotal', '20.06')
+            ->assertJsonPath('product_tax', '2.01')
+            ->assertJsonPath('shipping_tax', '0.50')
+            ->assertJsonPath('tax', '2.51')
+            ->assertJsonPath('total', '27.57');
 
         $response = $this->withHeader('Idempotency-Key', 'guest-checkout-key-0001')
             ->postJson('/api/v1/checkouts', $payload)
@@ -74,6 +86,62 @@ class CheckoutOrderControllerTest extends TestCase
             ->assertJsonMissingPath('guest_order_url')
             ->assertJsonPath('order.id', $orderId);
         $this->assertDatabaseCount('orders', 1);
+        Http::assertSentCount(1);
+    }
+
+    #[TestWith([false, true, '0.00', '1.50', '50.99'])]
+    #[TestWith([true, false, '3.45', '0.00', '52.94'])]
+    #[TestWith([true, true, '3.45', '1.50', '54.44'])]
+    #[TestWith([false, false, '0.00', '0.00', '49.49'])]
+    public function test_quote_tax_breakdown_matches_persisted_order(
+        bool $taxProducts,
+        bool $taxShipping,
+        string $productTax,
+        string $shippingTax,
+        string $total,
+    ): void {
+        [$first, $shipping] = $this->catalog('10.0000');
+        $first->update(['tax_id' => $taxProducts ? $first->tax_id : null]);
+        $second = Product::factory()->for($first->currency)->for($first->category)->create([
+            'price' => '24.4900',
+            'tax_id' => $first->tax_id,
+        ]);
+        Inventory::factory()->for($second)->create(['stock_on_hand' => 2]);
+        $shipping->update(['amount' => '15.0000', 'tax_id' => $taxShipping ? $shipping->tax_id : null]);
+        $lines = [
+            ['product_id' => $first->id, 'quantity' => 1],
+            ['product_id' => $second->id, 'quantity' => 1],
+        ];
+        Http::preventStrayRequests();
+        Http::fake([$this->providerUrl() => Http::response([
+            'provider_payment_id' => (string) Str::ulid(),
+            'status' => 'processing',
+        ], 202)]);
+
+        $quote = $this->postJson('/api/v1/cart/quote', [
+            'lines' => $lines,
+            'shipping_method_id' => $shipping->id,
+        ])->assertOk()
+            ->assertJsonPath('subtotal', '34.49')
+            ->assertJsonPath('product_tax', $productTax)
+            ->assertJsonPath('shipping', '15.00')
+            ->assertJsonPath('shipping_tax', $shippingTax)
+            ->assertJsonPath('total', $total);
+        $this->assertSame((string) BigDecimal::of($productTax)->plus($shippingTax), $quote->json('tax'));
+        $this->assertSame((string) BigDecimal::of('34.49')->plus($productTax)->plus('15.00')->plus($shippingTax), $quote->json('total'));
+
+        $checkout = $this->withHeader('Idempotency-Key', 'tax-breakdown-checkout-01')
+            ->postJson('/api/v1/checkouts', $this->payload($shipping, $lines))
+            ->assertAccepted()
+            ->assertJsonPath('order.total', $total);
+        $this->assertDatabaseHas('orders', [
+            'id' => $checkout->json('order.id'),
+            'subtotal' => '34.4900',
+            'product_tax' => (string) BigDecimal::of($productTax)->toScale(4),
+            'shipping_amount' => '15.0000',
+            'shipping_tax' => (string) BigDecimal::of($shippingTax)->toScale(4),
+            'grand_total' => (string) BigDecimal::of($total)->toScale(4),
+        ]);
         Http::assertSentCount(1);
     }
 
