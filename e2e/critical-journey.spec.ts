@@ -108,9 +108,11 @@ test.describe.serial('critical commerce journey', () => {
     await page.getByLabel('Email address').fill(administrator.email)
     await page.getByLabel('Password').fill(administrator.password)
     await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page).toHaveURL(/\/admin\/orders$/)
     await page.goto('/admin/products')
 
     const productRow = page.getByRole('row', { name: /All-weather lantern/ })
+    await expect(productRow).toBeVisible()
     await productRow.getByRole('button', { name: 'Delete' }).click()
     await expect(page.getByRole('heading', { name: 'Delete product?' })).toBeVisible()
     await page.getByRole('button', { name: 'Delete product' }).click()
