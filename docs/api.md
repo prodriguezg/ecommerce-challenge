@@ -107,6 +107,10 @@ Guest cart manipulation occurs in the browser. Server endpoints accept guest car
 
 Cart responses identify adjustments, unavailable items, current stock limits, and price/tax/shipping changes requiring customer attention.
 
+Every cart response (including guest/customer quotes, item/shipping mutations, and cart merges) includes currency-minor-unit decimal strings for `subtotal`, `product_tax`, `shipping`, `shipping_tax`, `tax`, and `total`. Product tax is calculated and rounded half-up independently per product line before summing; shipping tax is calculated and rounded separately using the shipping method's optional tax assignment. Missing product or shipping tax references contribute zero. The aggregate `tax` remains available for existing consumers and equals `product_tax + shipping_tax`; `total = subtotal + product_tax + shipping + shipping_tax`.
+
+Checkout displays **Product tax** and **Shipping tax** separately, including explicit zero values. For an untaxed USD 34.49 product subtotal and USD 15.00 shipping taxed at 10%, the response contains `product_tax: "0.00"`, `shipping_tax: "1.50"`, `tax: "1.50"`, and `total: "50.99"`. If those products instead carry 10% tax and shipping is untaxed, product tax is USD 3.45 and the total is USD 52.94. Quotes use current catalog/shipping configuration; order creation snapshots the same separately calculated amounts. Existing order snapshots remain immutable and require no migration or recalculation.
+
 ## 9. Checkout and order endpoints
 
 | Method | Path | Purpose |

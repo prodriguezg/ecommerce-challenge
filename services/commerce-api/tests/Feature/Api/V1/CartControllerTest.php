@@ -42,15 +42,25 @@ class CartControllerTest extends TestCase
             ->assertJsonPath('lines.0.quantity', 2)
             ->assertJsonPath('lines.0.unit_price', '10.01')
             ->assertJsonPath('subtotal', '20.01')
+            ->assertJsonPath('product_tax', '2.00')
+            ->assertJsonPath('shipping_tax', '0.00')
             ->assertJsonPath('tax', '2.00')
             ->assertJsonPath('total', '22.01')
             ->assertJsonPath('requires_confirmation', false);
         $this->assertDatabaseHas('cart_items', ['product_id' => $product->id, 'quantity' => 2]);
 
+        $this->getJson('/api/v1/cart')->assertOk()
+            ->assertJsonPath('product_tax', '2.00')
+            ->assertJsonPath('shipping_tax', '0.00')
+            ->assertJsonPath('tax', '2.00');
+
         $this->actingAs($customer)
             ->deleteJson("/api/v1/cart/items/{$product->id}")
             ->assertOk()
-            ->assertJsonCount(0, 'lines');
+            ->assertJsonCount(0, 'lines')
+            ->assertJsonPath('product_tax', '0.00')
+            ->assertJsonPath('shipping_tax', '0.00')
+            ->assertJsonPath('tax', '0.00');
         $this->assertDatabaseMissing('cart_items', ['product_id' => $product->id]);
     }
 
@@ -82,6 +92,8 @@ class CartControllerTest extends TestCase
         ])
             ->assertOk()
             ->assertJsonPath('subtotal', '20.01')
+            ->assertJsonPath('product_tax', '2.00')
+            ->assertJsonPath('shipping_tax', '0.50')
             ->assertJsonPath('tax', '2.50')
             ->assertJsonPath('shipping', '5.00')
             ->assertJsonPath('total', '27.51')
@@ -111,6 +123,9 @@ class CartControllerTest extends TestCase
             ])
             ->assertOk()
             ->assertHeader('X-Cart-Merge-Acknowledged', 'true')
+            ->assertJsonPath('product_tax', '0.00')
+            ->assertJsonPath('shipping_tax', '0.00')
+            ->assertJsonPath('tax', '0.00')
             ->assertJsonPath('lines.0.quantity', 4)
             ->assertJsonPath('lines.0.stock_limit', 4)
             ->assertJsonPath('requires_confirmation', true)
@@ -152,13 +167,19 @@ class CartControllerTest extends TestCase
         $this->actingAs($customer)
             ->putJson('/api/v1/cart/shipping-method', ['shipping_method_id' => $shipping->id])
             ->assertOk()
-            ->assertJsonPath('shipping', '5.00');
+            ->assertJsonPath('shipping', '5.00')
+            ->assertJsonPath('product_tax', '0.00')
+            ->assertJsonPath('shipping_tax', '0.00')
+            ->assertJsonPath('tax', '0.00');
         $this->assertDatabaseHas('carts', ['user_id' => $customer->id, 'shipping_method_id' => $shipping->id]);
 
         $this->actingAs($customer)
             ->putJson('/api/v1/cart/shipping-method', ['shipping_method_id' => null])
             ->assertOk()
-            ->assertJsonPath('shipping', '0.00');
+            ->assertJsonPath('shipping', '0.00')
+            ->assertJsonPath('product_tax', '0.00')
+            ->assertJsonPath('shipping_tax', '0.00')
+            ->assertJsonPath('tax', '0.00');
         $this->assertDatabaseHas('carts', ['user_id' => $customer->id, 'shipping_method_id' => null]);
     }
 

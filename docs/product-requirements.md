@@ -269,8 +269,10 @@ Registered customers receive their default address as checkout prefill. Editing 
 - Stored product and shipping prices exclude tax.
 - Product subtotal = unit price x quantity.
 - Tax is calculated and rounded independently per order line.
-- Shipping is a separate taxable line.
-- Missing tax references imply a zero rate.
+- Shipping is a separate, independently and optionally taxable line.
+- Missing product or shipping tax references imply a zero rate.
+- Cart/quote responses expose product tax and shipping tax separately, retain their sum as aggregate tax, and calculate the grand total as subtotal + product tax + shipping + shipping tax.
+- Checkout displays both tax amounts with explicit zero values.
 - Monetary arithmetic uses fixed-precision decimal values, never binary floating point.
 - Values use `DECIMAL(19,4)` storage; currency rates use greater precision.
 - Charged/displayed totals use the currency's minor-unit precision and half-up rounding.

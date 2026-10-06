@@ -990,6 +990,11 @@ export interface components {
         Cart: {
             lines: components["schemas"]["CartLine"][];
             subtotal: components["schemas"]["MoneyAmount"];
+            /** @description Sum of independently rounded product-line taxes; zero when no products are taxable. */
+            product_tax: components["schemas"]["MoneyAmount"];
+            /** @description Independently rounded shipping tax; zero when shipping has no tax assignment. */
+            shipping_tax: components["schemas"]["MoneyAmount"];
+            /** @description Backward-compatible aggregate equal to product_tax plus shipping_tax. */
             tax: components["schemas"]["MoneyAmount"];
             shipping: components["schemas"]["MoneyAmount"];
             total: components["schemas"]["MoneyAmount"];

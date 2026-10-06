@@ -1330,11 +1330,13 @@ components:
       additionalProperties: false
     Cart:
       type: object
-      required: [lines, subtotal, tax, shipping, total, currency, requires_confirmation]
+      required: [lines, subtotal, product_tax, shipping_tax, tax, shipping, total, currency, requires_confirmation]
       properties:
         lines: { type: array, items: { $ref: '#/components/schemas/CartLine' } }
         subtotal: { $ref: '#/components/schemas/MoneyAmount' }
-        tax: { $ref: '#/components/schemas/MoneyAmount' }
+        product_tax: { $ref: '#/components/schemas/MoneyAmount', description: Sum of independently rounded product-line taxes; zero when no products are taxable. }
+        shipping_tax: { $ref: '#/components/schemas/MoneyAmount', description: Independently rounded shipping tax; zero when shipping has no tax assignment. }
+        tax: { $ref: '#/components/schemas/MoneyAmount', description: Backward-compatible aggregate equal to product_tax plus shipping_tax. }
         shipping: { $ref: '#/components/schemas/MoneyAmount' }
         total: { $ref: '#/components/schemas/MoneyAmount' }
         currency: { $ref: '#/components/schemas/CurrencyCode' }
