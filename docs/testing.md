@@ -1,5 +1,10 @@
 # Testing and CI Strategy
 
+Exact local and CI-equivalent commands are maintained in the
+[verification command matrix](reviewer-guide.md#verification-command-matrix).
+Delivered coverage is indexed in
+[requirements-traceability.md](requirements-traceability.md#verification-strategy).
+
 ## 1. Principles
 
 - Test externally visible behavior and business invariants, not framework internals.

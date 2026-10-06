@@ -1,5 +1,8 @@
 # Product Requirements
 
+Implementation and test evidence for each section is indexed in
+[requirements-traceability.md](requirements-traceability.md#product-requirements).
+
 ## 1. Purpose
 
 The demo is a small but realistic e-commerce application that lets administrators manage a catalog and lets customers or guests search for and purchase physical products. It deliberately demonstrates correctness at integration boundaries: partial CSV import, concurrent stock reservations, asynchronous payment callbacks, and auditable administrative actions.
