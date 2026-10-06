@@ -66,7 +66,7 @@ class ProductController extends Controller
     {
         try {
             $product = DB::transaction(function () use ($request): Product {
-                $product = Product::create($this->attributes($request) + ['weight_kg' => 0, 'version' => 1]);
+                $product = Product::create($this->attributes($request) + ['version' => 1]);
                 DB::table('product_sku_reservations')->insert([
                     'normalized_sku' => $product->normalized_sku,
                     'product_id' => $product->getKey(),
@@ -254,6 +254,7 @@ class ProductController extends Controller
             'name' => trim($request->string('name')->toString()),
             'description' => $request->input('description'),
             'price' => $request->input('price'),
+            'weight_kg' => $request->input('weight_kg'),
             'currency_id' => Currency::where('code', $request->string('currency')->upper()->toString())->value('id'),
             'category_id' => $request->input('category_id'),
             'tax_id' => $request->input('tax_id'),

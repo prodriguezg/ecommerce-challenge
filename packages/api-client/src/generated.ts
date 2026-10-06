@@ -815,6 +815,12 @@ export interface components {
         Ulid: string;
         /** @example 19.99 */
         MoneyAmount: string;
+        /** @example 19.99 */
+        MoneyInput: string;
+        /** @example 1.2500 */
+        WeightKilograms: string;
+        /** @example 1.25 */
+        WeightKilogramsInput: string;
         /** @example USD */
         CurrencyCode: string;
         /**
@@ -932,6 +938,7 @@ export interface components {
             name: string;
             description: string;
             price: components["schemas"]["MoneyAmount"];
+            weight_kg: components["schemas"]["WeightKilograms"];
             /**
              * @description Confirms that price is the base unit price before tax.
              * @constant
@@ -940,6 +947,8 @@ export interface components {
             currency: components["schemas"]["CurrencyCode"];
             /** @description Active category metadata, or null for the virtual Uncategorized grouping. */
             category: components["schemas"]["Category"] | null;
+            /** @description Active tax identifier used when calculating checkout totals, or null when no tax applies. */
+            tax_id: components["schemas"]["Ulid"] | null;
             /** Format: uri-reference */
             image_url: string;
             in_stock: boolean;
@@ -951,7 +960,8 @@ export interface components {
             sku: string;
             name: string;
             description: string;
-            price: components["schemas"]["MoneyAmount"];
+            price: components["schemas"]["MoneyInput"];
+            weight_kg: components["schemas"]["WeightKilogramsInput"];
             currency: components["schemas"]["CurrencyCode"];
             category_id: components["schemas"]["Ulid"];
             tax_id: components["schemas"]["Ulid"];

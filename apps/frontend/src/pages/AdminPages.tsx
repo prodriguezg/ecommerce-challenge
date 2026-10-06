@@ -9,42 +9,134 @@ function PageTitle({ children, action }: { children: React.ReactNode; action?: R
   return <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}><Typography variant="h1">{children}</Typography>{action}</Stack>
 }
 
+function ProductFields({ product, categories, taxes, includeInitialStock = false }: { product?: Product; categories: Category[]; taxes: Tax[]; includeInitialStock?: boolean }) {
+  return <Stack gap={2} sx={{ pt: 1 }}>
+    <TextField required defaultValue={product?.name ?? ''} label="Name" name="name" />
+    <TextField required defaultValue={product?.sku ?? ''} label="SKU" name="sku" />
+    <TextField defaultValue={product?.description ?? ''} multiline minRows={3} label="Description" name="description" />
+    <TextField required defaultValue={product?.price ?? ''} slotProps={{ htmlInput: { min: 0, step: '.01' } }} label="Price excluding tax" name="price" type="number" />
+    <TextField required defaultValue={product?.weight_kg ?? '0'} slotProps={{ htmlInput: { min: 0, step: '.0001' } }} label="Weight (kg)" name="weight_kg" type="number" />
+    {includeInitialStock ? <TextField slotProps={{ htmlInput: { min: 0 } }} label="Initial stock on hand" name="initial_on_hand" type="number" defaultValue="0" /> : null}
+    <TextField select label="Category (optional)" name="category_id" defaultValue={product?.category?.id ?? ''}>
+      <MenuItem value="">No category</MenuItem>
+      {categories.filter((category) => category.active).map((category) => <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>)}
+    </TextField>
+    <TextField select label="Tax (optional)" name="tax_id" defaultValue={product?.tax_id ?? ''}>
+      <MenuItem value="">No tax</MenuItem>
+      {taxes.filter((tax) => tax.active).map((tax) => <MenuItem key={tax.id} value={tax.id}>{tax.name} ({tax.rate}%)</MenuItem>)}
+    </TextField>
+  </Stack>
+}
+
+function productPayload(data: FormData) {
+  return {
+    sku: data.get('sku'),
+    name: data.get('name'),
+    description: data.get('description'),
+    price: data.get('price'),
+    weight_kg: data.get('weight_kg'),
+    currency: 'USD',
+    category_id: data.get('category_id') || null,
+    tax_id: data.get('tax_id') || null,
+    active: true,
+  }
+}
+
 export function AdminProductsPage() {
   const [page, setPage] = useState<ProductPage | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [taxes, setTaxes] = useState<Tax[]>([])
   const [error, setError] = useState<unknown>(null)
-  const [open, setOpen] = useState(false)
-  const load = () => api<ProductPage>('/admin/products?per_page=50').then(setPage).catch(setError)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editing, setEditing] = useState<Product | null>(null)
+  const [deleting, setDeleting] = useState<Product | null>(null)
+  const [busy, setBusy] = useState(false)
+  const load = () => Promise.all([
+    api<ProductPage>('/admin/products?per_page=50'),
+    api<Category[]>('/admin/categories'),
+    api<Tax[]>('/admin/taxes'),
+  ]).then(([products, availableCategories, availableTaxes]) => {
+    setPage(products)
+    setCategories(availableCategories)
+    setTaxes(availableTaxes)
+    setError(null)
+  }).catch(setError)
   useEffect(() => { void load() }, [])
+
   const create = async (event: FormEvent<HTMLElement>) => {
-    event.preventDefault(); setError(null); const data = new FormData(event.currentTarget as HTMLFormElement)
-    try { await api<Product>('/admin/products', { method: 'POST', body: JSON.stringify({ sku: data.get('sku'), name: data.get('name'), description: data.get('description'), price: data.get('price'), currency: 'USD', category_id: data.get('category_id') || null, tax_id: data.get('tax_id') || null, active: true, initial_on_hand: Number(data.get('initial_on_hand')) }) }); setOpen(false); void load() } catch (requestError) { setError(requestError) }
+    event.preventDefault(); setBusy(true); setError(null)
+    const data = new FormData(event.currentTarget as HTMLFormElement)
+    try {
+      await api<Product>('/admin/products', { method: 'POST', body: JSON.stringify({ ...productPayload(data), initial_on_hand: Number(data.get('initial_on_hand')) }) })
+      setCreateOpen(false)
+      await load()
+    } catch (requestError) { setError(requestError) } finally { setBusy(false) }
   }
-  return <><PageTitle action={<Button onClick={() => setOpen(true)} variant="contained">Add product</Button>}>Products</PageTitle>{error ? <ErrorNotice error={error} /> : null}{!page && !error ? <Loading label="Loading products" /> : <TableContainer><Table><TableHead><TableRow><TableCell>Product</TableCell><TableCell>SKU</TableCell><TableCell>Price</TableCell><TableCell>Stock</TableCell><TableCell>Updated</TableCell></TableRow></TableHead><TableBody>{page?.items.map((product) => <TableRow key={product.id}><TableCell><Stack direction="row" gap={2} alignItems="center"><Box component="img" src={product.image_url} alt="" sx={{ height: 48, objectFit: 'cover', width: 64 }} /><Box><Typography sx={{ fontWeight: 700 }}>{product.name}</Typography><Button component={Link} to={`/admin/inventory?product=${product.id}`} size="small">Inventory</Button></Box></Stack></TableCell><TableCell>{product.sku}</TableCell><TableCell>{product.currency} {product.price}</TableCell><TableCell><StatusText tone={product.in_stock ? 'success' : 'neutral'}>{product.in_stock ? 'Available' : 'Out of stock'}</StatusText></TableCell><TableCell>{new Date(product.updated_at).toLocaleDateString()}</TableCell></TableRow>)}</TableBody></Table></TableContainer>}
-    <Dialog open={open} onClose={() => setOpen(false)} fullWidth><Stack component="form" onSubmit={(event) => void create(event)}><DialogTitle>Add product</DialogTitle><DialogContent><Stack gap={2} sx={{ pt: 1 }}><ValidationSummary error={error} /><TextField required label="Name" name="name" /><TextField required label="SKU" name="sku" /><TextField multiline minRows={3} label="Description" name="description" /><TextField required slotProps={{ htmlInput: { min: 0, step: '.01' } }} label="Price excluding tax" name="price" type="number" /><TextField slotProps={{ htmlInput: { min: 0 } }} label="Initial stock on hand" name="initial_on_hand" type="number" defaultValue="0" /><TextField label="Category ID (optional)" name="category_id" /><TextField label="Tax ID (optional)" name="tax_id" /><Button component="label" variant="outlined">Choose product image<input accept="image/jpeg,image/png,image/webp" hidden type="file" /></Button><Typography color="text.secondary" variant="caption">JPEG, PNG, or WebP up to 5 MB. Upload becomes available after product creation.</Typography></Stack></DialogContent><DialogActions><Button onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" variant="contained">Create product</Button></DialogActions></Stack></Dialog>
+
+  const update = async (event: FormEvent<HTMLElement>) => {
+    event.preventDefault()
+    if (!editing) return
+    setBusy(true); setError(null)
+    const data = new FormData(event.currentTarget as HTMLFormElement)
+    try {
+      await api<Product>(`/admin/products/${editing.id}`, { method: 'PUT', headers: { 'If-Match-Version': String(editing.version) }, body: JSON.stringify(productPayload(data)) })
+      setEditing(null)
+      await load()
+    } catch (requestError) { setError(requestError) } finally { setBusy(false) }
+  }
+
+  const remove = async () => {
+    if (!deleting) return
+    setBusy(true); setError(null)
+    try {
+      await api<void>(`/admin/products/${deleting.id}`, { method: 'DELETE', headers: { 'If-Match-Version': String(deleting.version) } })
+      setDeleting(null)
+      await load()
+    } catch (requestError) { setError(requestError) } finally { setBusy(false) }
+  }
+
+  return <>
+    <PageTitle action={<Button onClick={() => setCreateOpen(true)} variant="contained">Add product</Button>}>Products</PageTitle>
+    {error ? <ErrorNotice error={error} /> : null}
+    {!page && !error ? <Loading label="Loading products" /> : <TableContainer><Table><TableHead><TableRow><TableCell>Product</TableCell><TableCell>SKU</TableCell><TableCell>Price</TableCell><TableCell>Stock</TableCell><TableCell>Updated</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead><TableBody>{page?.items.map((product) => <TableRow key={product.id}><TableCell><Stack direction="row" gap={2} alignItems="center"><Box component="img" src={product.image_url} alt="" sx={{ height: 48, objectFit: 'cover', width: 64 }} /><Typography sx={{ fontWeight: 700 }}>{product.name}</Typography></Stack></TableCell><TableCell>{product.sku}</TableCell><TableCell>{product.currency} {product.price}</TableCell><TableCell><StatusText tone={product.in_stock ? 'success' : 'neutral'}>{product.in_stock ? 'Available' : 'Out of stock'}</StatusText></TableCell><TableCell>{new Date(product.updated_at).toLocaleDateString()}</TableCell><TableCell align="right"><Stack direction="row" gap={1} justifyContent="flex-end"><Button component={Link} to={`/admin/inventory?product=${product.id}`} size="small">Inventory</Button><Button onClick={() => setEditing(product)} size="small">Edit</Button><Button color="error" onClick={() => setDeleting(product)} size="small">Delete</Button></Stack></TableCell></TableRow>)}</TableBody></Table></TableContainer>}
+
+    <Dialog open={createOpen} onClose={() => setCreateOpen(false)} fullWidth><Stack component="form" onSubmit={(event) => void create(event)}><DialogTitle>Add product</DialogTitle><DialogContent><ValidationSummary error={error} /><ProductFields categories={categories} taxes={taxes} includeInitialStock /><Button component="label" sx={{ mt: 2 }} variant="outlined">Choose product image<input accept="image/jpeg,image/png,image/webp" hidden type="file" /></Button><Typography color="text.secondary" variant="caption" sx={{ display: 'block', mt: 1 }}>JPEG, PNG, or WebP up to 5 MB. Upload becomes available after product creation.</Typography></DialogContent><DialogActions><Button onClick={() => setCreateOpen(false)}>Cancel</Button><Button disabled={busy} type="submit" variant="contained">{busy ? 'Creating…' : 'Create product'}</Button></DialogActions></Stack></Dialog>
+
+    {editing ? <Dialog open onClose={() => setEditing(null)} fullWidth><Stack component="form" onSubmit={(event) => void update(event)}><DialogTitle>Edit product</DialogTitle><DialogContent><ValidationSummary error={error} /><ProductFields product={editing} categories={categories} taxes={taxes} /></DialogContent><DialogActions><Button onClick={() => setEditing(null)}>Cancel</Button><Button disabled={busy} type="submit" variant="contained">{busy ? 'Saving…' : 'Save changes'}</Button></DialogActions></Stack></Dialog> : null}
+
+    <Dialog open={Boolean(deleting)} onClose={() => setDeleting(null)} fullWidth maxWidth="xs"><DialogTitle>Delete product?</DialogTitle><DialogContent><Typography>This removes <strong>{deleting?.name}</strong> from the catalog. Historical order and reservation records remain preserved.</Typography></DialogContent><DialogActions><Button onClick={() => setDeleting(null)}>Cancel</Button><Button color="error" disabled={busy} onClick={() => void remove()} variant="contained">{busy ? 'Deleting…' : 'Delete product'}</Button></DialogActions></Dialog>
   </>
 }
 
 type Resource = Category | Tax | ShippingMethod
 const resources = {
-  categories: { title: 'Categories', endpoint: '/admin/categories', fields: ['name', 'slug'] },
-  taxes: { title: 'Taxes', endpoint: '/admin/taxes', fields: ['name', 'rate'] },
-  shipping: { title: 'Shipping methods', endpoint: '/admin/shipping-methods', fields: ['name', 'amount', 'tax_id'] },
+  categories: { title: 'Categories', singular: 'category', endpoint: '/admin/categories', fields: ['name', 'slug'] },
+  taxes: { title: 'Taxes', singular: 'tax', endpoint: '/admin/taxes', fields: ['name', 'rate'] },
+  shipping: { title: 'Shipping methods', singular: 'shipping method', endpoint: '/admin/shipping-methods', fields: ['name', 'amount', 'tax_id'] },
 } as const
 
 export function AdminResourcePage({ kind }: { kind: keyof typeof resources }) {
   const config = resources[kind]
   const [items, setItems] = useState<Resource[] | null>(null)
+  const [taxes, setTaxes] = useState<Tax[]>([])
   const [error, setError] = useState<unknown>(null)
-  const load = () => api<Resource[]>(config.endpoint).then(setItems).catch(setError)
+  const load = () => Promise.all([
+    api<Resource[]>(config.endpoint),
+    kind === 'shipping' ? api<Tax[]>('/admin/taxes') : Promise.resolve([]),
+  ]).then(([resources, availableTaxes]) => {
+    setItems(resources)
+    setTaxes(availableTaxes)
+    setError(null)
+  }).catch(setError)
   useEffect(() => { void load() }, [config.endpoint])
   const create = async (event: FormEvent<HTMLElement>) => {
     event.preventDefault(); setError(null); const form = event.currentTarget as HTMLFormElement; const data = new FormData(form)
     const body = kind === 'categories' ? { name: data.get('name'), slug: data.get('slug'), active: true }
       : kind === 'taxes' ? { name: data.get('name'), rate: data.get('rate'), active: true }
-      : { name: data.get('name'), amount: data.get('amount'), currency: 'USD', tax_id: data.get('tax_id'), active: true }
+      : { name: data.get('name'), amount: data.get('amount'), currency: 'USD', tax_id: data.get('tax_id') || null, active: true }
     try { await api<Resource>(config.endpoint, { method: 'POST', body: JSON.stringify(body) }); form.reset(); void load() } catch (requestError) { setError(requestError) }
   }
-  return <><PageTitle>{config.title}</PageTitle><Stack direction={{ xs: 'column', lg: 'row' }} gap={4}><Stack component="form" onSubmit={(event) => void create(event)} gap={2} sx={{ border: 1, borderColor: 'divider', p: 3, width: { lg: 350 } }}><Typography variant="h3">Add {config.title.toLowerCase().replace(/s$/, '')}</Typography><ValidationSummary error={error} />{error ? <ErrorNotice error={error} /> : null}{config.fields.map((field) => <TextField required key={field} label={field.replaceAll('_', ' ')} name={field} type={field === 'rate' || field === 'amount' ? 'number' : 'text'} slotProps={field === 'rate' || field === 'amount' ? { htmlInput: { min: 0, step: '.01' } } : undefined} />)}<Button type="submit" variant="contained">Add</Button></Stack><TableContainer sx={{ flex: 1 }}><Table><TableHead><TableRow><TableCell>Name</TableCell><TableCell>Details</TableCell><TableCell>Status</TableCell><TableCell>Version</TableCell></TableRow></TableHead><TableBody>{items?.map((item) => <TableRow key={item.id}><TableCell>{item.name}</TableCell><TableCell>{'rate' in item ? `${item.rate}%` : 'amount' in item ? `${item.currency} ${item.amount}` : item.slug}</TableCell><TableCell><StatusText tone={item.active ? 'success' : 'neutral'}>{item.active ? 'Active' : 'Inactive'}</StatusText></TableCell><TableCell>{item.version}</TableCell></TableRow>)}</TableBody></Table></TableContainer></Stack></>
+  return <><PageTitle>{config.title}</PageTitle><Stack direction={{ xs: 'column', lg: 'row' }} gap={4}><Stack component="form" onSubmit={(event) => void create(event)} gap={2} sx={{ border: 1, borderColor: 'divider', p: 3, width: { lg: 350 } }}><Typography variant="h3">Add {config.singular}</Typography><ValidationSummary error={error} />{error ? <ErrorNotice error={error} /> : null}{config.fields.map((field) => field === 'tax_id' ? <TextField select key={field} defaultValue="" label="Tax (optional)" name={field}><MenuItem value="">No tax</MenuItem>{taxes.filter((tax) => tax.active).map((tax) => <MenuItem key={tax.id} value={tax.id}>{tax.name} ({tax.rate}%)</MenuItem>)}</TextField> : <TextField required key={field} label={field.replaceAll('_', ' ')} name={field} type={field === 'rate' || field === 'amount' ? 'number' : 'text'} slotProps={field === 'rate' || field === 'amount' ? { htmlInput: { min: 0, step: '.01' } } : undefined} />)}<Button type="submit" variant="contained">Add</Button></Stack><TableContainer sx={{ flex: 1 }}><Table><TableHead><TableRow><TableCell>Name</TableCell><TableCell>Details</TableCell><TableCell>Status</TableCell><TableCell>Version</TableCell></TableRow></TableHead><TableBody>{items?.map((item) => <TableRow key={item.id}><TableCell>{item.name}</TableCell><TableCell>{'rate' in item ? `${item.rate}%` : 'amount' in item ? `${item.currency} ${item.amount}` : item.slug}</TableCell><TableCell><StatusText tone={item.active ? 'success' : 'neutral'}>{item.active ? 'Active' : 'Inactive'}</StatusText></TableCell><TableCell>{item.version}</TableCell></TableRow>)}</TableBody></Table></TableContainer></Stack></>
 }
 
 export function AdminInventoryPage() {
@@ -62,7 +154,7 @@ export function AdminImportsPage() {
   const [result, setResult] = useState<ProductImport | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [override, setOverride] = useState(false)
-  const submit = async (event: FormEvent<HTMLElement>) => { event.preventDefault(); setError(null); const form = new FormData(event.currentTarget as HTMLFormElement); form.set('stock_override', override ? '1' : '0'); form.set('stock_override_confirmed', override ? '1' : '0'); try { setResult(await api<ProductImport>('/admin/product-imports', { method: 'POST', body: form })) } catch (requestError) { setError(requestError) } }
+  const submit = async (event: FormEvent<HTMLElement>) => { event.preventDefault(); setError(null); const form = new FormData(event.currentTarget as HTMLFormElement); form.set('override_stock', override ? '1' : '0'); if (override) form.set('confirm_stock_override', '1'); else form.delete('confirm_stock_override'); try { setResult(await api<ProductImport>('/admin/product-imports', { method: 'POST', body: form })) } catch (requestError) { setError(requestError) } }
   return <><PageTitle>Import products</PageTitle><Stack component="form" onSubmit={(event) => void submit(event)} gap={3} sx={{ maxWidth: 720 }}>{error ? <ErrorNotice error={error} /> : null}<Alert severity="info">Upload a UTF-8 CSV with name, SKU, price, stock, and weight columns. Valid rows commit independently.</Alert><Button component="label" variant="outlined">Choose CSV file<input accept=".csv,text/csv" hidden name="file" required type="file" /></Button><FormControl><Typography sx={{ fontWeight: 700 }}>Import mode</Typography><RadioGroup defaultValue="create_only" name="mode"><FormControlLabel value="create_only" control={<Radio />} label="Create only (safe default)" /><FormControlLabel value="update_only" control={<Radio />} label="Update only" /><FormControlLabel value="upsert" control={<Radio />} label="Upsert" /></RadioGroup></FormControl><FormControl><InputLabel id="policy-label">Unknown category policy</InputLabel><Select defaultValue="reject" labelId="policy-label" label="Unknown category policy" name="unknown_category_policy"><MenuItem value="reject">Reject row</MenuItem><MenuItem value="create">Create category</MenuItem><MenuItem value="uncategorized">Use Uncategorized</MenuItem></Select></FormControl><FormControlLabel control={<Switch checked={override} onChange={(event) => setOverride(event.target.checked)} />} label="Override stock for existing products" />{override ? <Alert severity="warning">Confirming this option can change existing stock and will create audit adjustments.</Alert> : null}<Button type="submit" variant="contained">Import CSV</Button>{result ? <Box aria-live="polite" sx={{ bgcolor: '#f5f8fc', p: 3 }}><Typography variant="h3">Import complete</Typography><Typography>{result.accepted_rows} accepted · {result.warning_rows} warnings · {result.rejected_rows} rejected</Typography>{result.rejected_rows ? <Button component="a" href={`/api/v1/admin/product-imports/${result.id}/rejections.csv`}>Download rejected rows</Button> : null}</Box> : null}</Stack></>
 }
 

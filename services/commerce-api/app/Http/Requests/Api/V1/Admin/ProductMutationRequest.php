@@ -14,7 +14,8 @@ class ProductMutationRequest extends ApiFormRequest
             'sku' => ['required', 'string', 'max:100', 'not_regex:/^\s*$/'],
             'name' => ['required', 'string', 'max:200', 'not_regex:/^\s*$/'],
             'description' => ['required', 'nullable', 'string', 'max:5000'],
-            'price' => ['required', 'decimal:2', 'min:0'],
+            'price' => ['required', 'decimal:0,2', 'min:0'],
+            'weight_kg' => ['required', 'decimal:0,4', 'min:0'],
             'currency' => ['required', 'string', 'size:3', Rule::exists('currencies', 'code')->whereNull('deleted_at')],
             'category_id' => ['present', 'nullable', 'ulid', Rule::exists('categories', 'id')->whereNull('deleted_at')],
             'tax_id' => ['present', 'nullable', 'ulid', Rule::exists('taxes', 'id')->whereNull('deleted_at')],
@@ -25,6 +26,6 @@ class ProductMutationRequest extends ApiFormRequest
 
     protected function permittedKeys(): array
     {
-        return ['sku', 'name', 'description', 'price', 'currency', 'category_id', 'tax_id', 'active', 'initial_on_hand'];
+        return ['sku', 'name', 'description', 'price', 'weight_kg', 'currency', 'category_id', 'tax_id', 'active', 'initial_on_hand'];
     }
 }

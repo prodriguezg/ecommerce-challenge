@@ -1083,6 +1083,9 @@ components:
   schemas:
     Ulid: { type: string, pattern: '^[0-9A-HJKMNP-TV-Z]{26}$', example: 01K6H2B57Y9X2A1B3C4D5E6F7G }
     MoneyAmount: { type: string, pattern: '^(0|[1-9][0-9]*)(\.[0-9]{2})$', example: '19.99' }
+    MoneyInput: { type: string, pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,2})?$', example: '19.99' }
+    WeightKilograms: { type: string, pattern: '^(0|[1-9][0-9]*)\.[0-9]{4}$', example: '1.2500' }
+    WeightKilogramsInput: { type: string, pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,4})?$', example: '1.25' }
     CurrencyCode: { type: string, pattern: '^[A-Z]{3}$', example: USD }
     UtcTimestamp: { type: string, format: date-time, pattern: 'Z$', example: '2026-10-04T15:30:00Z' }
     Version: { type: integer, minimum: 1 }
@@ -1236,19 +1239,25 @@ components:
       additionalProperties: false
     Product:
       type: object
-      required: [id, sku, name, description, price, price_excludes_tax, currency, category, image_url, in_stock, version, created_at, updated_at]
+      required: [id, sku, name, description, price, weight_kg, price_excludes_tax, currency, category, tax_id, image_url, in_stock, version, created_at, updated_at]
       properties:
         id: { $ref: '#/components/schemas/Ulid' }
         sku: { type: string }
         name: { type: string }
         description: { type: string }
         price: { $ref: '#/components/schemas/MoneyAmount' }
+        weight_kg: { $ref: '#/components/schemas/WeightKilograms' }
         price_excludes_tax: { type: boolean, const: true, description: Confirms that price is the base unit price before tax. }
         currency: { $ref: '#/components/schemas/CurrencyCode' }
         category:
           description: Active category metadata, or null for the virtual Uncategorized grouping.
           oneOf:
             - { $ref: '#/components/schemas/Category' }
+            - { type: 'null' }
+        tax_id:
+          description: Active tax identifier used when calculating checkout totals, or null when no tax applies.
+          oneOf:
+            - { $ref: '#/components/schemas/Ulid' }
             - { type: 'null' }
         image_url: { type: string, format: uri-reference }
         in_stock: { type: boolean }
@@ -1258,12 +1267,13 @@ components:
       additionalProperties: false
     ProductInput:
       type: object
-      required: [sku, name, description, price, currency, category_id, tax_id, active]
+      required: [sku, name, description, price, weight_kg, currency, category_id, tax_id, active]
       properties:
         sku: { type: string, minLength: 1, maxLength: 100 }
         name: { type: string, minLength: 1, maxLength: 200 }
         description: { type: string, maxLength: 5000 }
-        price: { $ref: '#/components/schemas/MoneyAmount' }
+        price: { $ref: '#/components/schemas/MoneyInput' }
+        weight_kg: { $ref: '#/components/schemas/WeightKilogramsInput' }
         currency: { $ref: '#/components/schemas/CurrencyCode' }
         category_id: { $ref: '#/components/schemas/Ulid' }
         tax_id: { $ref: '#/components/schemas/Ulid' }

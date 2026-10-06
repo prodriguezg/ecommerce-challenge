@@ -5,12 +5,13 @@ import { api, queryString, type Category, type Product, type ProductPage } from 
 import { useCart } from '../lib/cart'
 import { Empty, ErrorNotice, StatusText } from '../components/Feedback'
 import { Stack } from '../components/Stack'
+import { ProductImage } from '../components/ProductImage'
 
 function ProductCard({ product }: { product: Product }) {
   const { add } = useCart()
   return <Box component="article" sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
     <Box aria-label={`View ${product.name}`} component={Link} to={`/products/${product.id}`} sx={{ bgcolor: '#f3f6f9', display: 'block', mb: 1.5, overflow: 'hidden', aspectRatio: '4/3' }}>
-      <Box component="img" src={product.image_url} alt="" loading="lazy" sx={{ height: '100%', objectFit: 'cover', transition: 'transform .2s', width: '100%', '&:hover': { transform: 'scale(1.02)' } }} />
+      <ProductImage name={product.name} src={product.image_url} loading="lazy" sx={{ height: '100%', objectFit: 'cover', transition: 'transform .2s', width: '100%', '&:hover': { transform: 'scale(1.02)' } }} />
     </Box>
     <Typography component={Link} to={`/products/${product.id}`} color="inherit" sx={{ fontWeight: 700, textDecoration: 'none' }}>{product.name}</Typography>
     <Typography sx={{ fontSize: 18, fontWeight: 750, mt: .5 }}>{product.currency} {product.price} <Typography component="span" color="text.secondary" variant="body2">excluding tax</Typography></Typography>
