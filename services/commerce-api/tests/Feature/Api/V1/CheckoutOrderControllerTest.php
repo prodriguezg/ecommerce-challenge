@@ -7,6 +7,8 @@ use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\SettingType;
 use App\Models\ApplicationSetting;
+use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\Currency;
 use App\Models\Inventory;
@@ -160,23 +162,68 @@ class CheckoutOrderControllerTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
     }
 
+    public function test_accepted_customer_checkout_removes_purchased_items_from_server_cart_and_replay_is_safe(): void
+    {
+        [$product, $shipping] = $this->catalog();
+        $customer = User::factory()->create(['email' => 'customer@example.test']);
+        $cart = Cart::factory()->for($customer)->for($product->currency)->create();
+        $second = Product::factory()->for($product->currency)->for($product->tax)->for($product->category)->create();
+        Inventory::factory()->for($second)->create(['stock_on_hand' => 5]);
+        CartItem::factory()->for($cart)->for($product)->create(['quantity' => 2]);
+        CartItem::factory()->for($cart)->for($second)->create(['quantity' => 1]);
+        Http::preventStrayRequests();
+        Http::fake([$this->providerUrl() => Http::response([
+            'provider_payment_id' => (string) Str::ulid(),
+            'status' => 'processing',
+        ], 202)]);
+        $payload = $this->payload($shipping, [
+            ['product_id' => $product->id, 'quantity' => 2],
+            ['product_id' => $second->id, 'quantity' => 1],
+        ]);
+        $payload['email'] = $customer->email;
+
+        $response = $this->actingAs($customer)
+            ->withHeader('Idempotency-Key', 'customer-cart-clear-01')
+            ->postJson('/api/v1/checkouts', $payload)
+            ->assertAccepted();
+
+        $this->assertDatabaseMissing('cart_items', ['cart_id' => $cart->id]);
+
+        $this->actingAs($customer)
+            ->withHeader('Idempotency-Key', 'customer-cart-clear-01')
+            ->postJson('/api/v1/checkouts', $payload)
+            ->assertAccepted()
+            ->assertJsonPath('order.id', $response->json('order.id'));
+        $this->assertDatabaseMissing('cart_items', ['cart_id' => $cart->id]);
+        $this->assertDatabaseCount('orders', 1);
+        Http::assertSentCount(1);
+    }
+
     public function test_checkout_is_all_or_nothing_when_any_line_lacks_available_stock(): void
     {
         [$available, $shipping] = $this->catalog(stock: 5);
         $unavailable = Product::factory()->for($available->currency)->for($available->tax)->for($available->category)->create();
         Inventory::factory()->for($unavailable)->create(['stock_on_hand' => 0]);
+        $customer = User::factory()->create(['email' => 'customer@example.test']);
+        $cart = Cart::factory()->for($customer)->for($available->currency)->create();
+        CartItem::factory()->for($cart)->for($available)->create(['quantity' => 1]);
+        CartItem::factory()->for($cart)->for($unavailable)->create(['quantity' => 1]);
+        $payload = $this->payload($shipping, [
+            ['product_id' => $available->id, 'quantity' => 1],
+            ['product_id' => $unavailable->id, 'quantity' => 1],
+        ]);
+        $payload['email'] = $customer->email;
 
-        $this->withHeader('Idempotency-Key', 'atomic-stock-key-0001')
-            ->postJson('/api/v1/checkouts', $this->payload($shipping, [
-                ['product_id' => $available->id, 'quantity' => 1],
-                ['product_id' => $unavailable->id, 'quantity' => 1],
-            ]))
+        $this->actingAs($customer)
+            ->withHeader('Idempotency-Key', 'atomic-stock-key-0001')
+            ->postJson('/api/v1/checkouts', $payload)
             ->assertConflict()
             ->assertJsonPath('code', 'inventory_unavailable');
 
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('reservations', 0);
         $this->assertDatabaseCount('checkout_idempotencies', 0);
+        $this->assertDatabaseCount('cart_items', 2);
         Http::assertNothingSent();
     }
 
@@ -216,13 +263,18 @@ class CheckoutOrderControllerTest extends TestCase
         $this->assertLessThanOrEqual(301, $before->diffInSeconds($expiresAt));
     }
 
-    public function test_payment_initiation_failure_releases_reservation_and_is_idempotent(): void
+    public function test_payment_initiation_failure_releases_reservation_preserves_customer_cart_and_is_idempotent(): void
     {
         [$product, $shipping] = $this->catalog();
+        $customer = User::factory()->create(['email' => 'customer@example.test']);
+        $cart = Cart::factory()->for($customer)->for($product->currency)->create();
+        CartItem::factory()->for($cart)->for($product)->create(['quantity' => 1]);
         Http::fakeSequence()->pushFailedConnection('connection failed')->pushFailedConnection('connection failed');
         $payload = $this->payload($shipping, [['product_id' => $product->id, 'quantity' => 1]]);
+        $payload['email'] = $customer->email;
 
-        $this->withHeader('Idempotency-Key', 'provider-failure-key-1')
+        $this->actingAs($customer)
+            ->withHeader('Idempotency-Key', 'provider-failure-key-1')
             ->postJson('/api/v1/checkouts', $payload)
             ->assertStatus(500)
             ->assertJsonPath('code', 'payment_initiation_failed');
@@ -230,6 +282,7 @@ class CheckoutOrderControllerTest extends TestCase
         $this->assertDatabaseHas('orders', ['status' => OrderStatus::PaymentFailed->value]);
         $this->assertDatabaseHas('reservations', ['status' => ReservationStatus::Released->value]);
         $this->assertDatabaseHas('payments', ['status' => PaymentStatus::InitiationFailed->value]);
+        $this->assertDatabaseHas('cart_items', ['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 1]);
         Http::assertSentCount(2);
 
         $this->withHeader('Idempotency-Key', 'provider-failure-key-1')

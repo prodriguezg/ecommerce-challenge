@@ -84,13 +84,18 @@ class CheckoutService
             $payment = $order->payment()->firstOrFail();
             $acceptance = $this->paymentProvider->create($payment, $canonical['payment_test_number']);
 
-            DB::transaction(function () use ($payment, $acceptance, $idempotency): void {
+            DB::transaction(function () use ($payment, $acceptance, $idempotency, $customer): void {
                 $payment->forceFill([
                     'provider_payment_id' => $acceptance['provider_payment_id'],
                     'status' => PaymentStatus::Processing,
                 ])->save();
                 $this->paymentHistory($payment, PaymentStatus::Requested, PaymentStatus::Processing, 'provider_accepted');
                 $idempotency->forceFill(['response_status' => 202])->save();
+
+                $cart = $customer?->cart()->first();
+                if ($cart !== null) {
+                    $cart->items()->delete();
+                }
             });
 
             $order->refresh();

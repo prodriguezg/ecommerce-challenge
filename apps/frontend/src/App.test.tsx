@@ -22,6 +22,21 @@ function response(body: unknown, status = 200) {
   return Promise.resolve(new Response(status === 204 ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }))
 }
 
+function customerCart(quantity = 1) {
+  const lineSubtotal = (Number(product.price) * quantity).toFixed(2)
+  return {
+    lines: [{ product_id: product.id, name: product.name, quantity, unit_price: product.price, line_subtotal: lineSubtotal, currency: 'USD', available: true, stock_limit: 5 }],
+    subtotal: lineSubtotal,
+    product_tax: '0.00',
+    shipping_tax: '0.00',
+    tax: '0.00',
+    shipping: '0.00',
+    total: lineSubtotal,
+    currency: 'USD',
+    requires_confirmation: false,
+  }
+}
+
 function mockApi(principal: unknown = null, setupAvailable = false) {
   vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
@@ -63,6 +78,64 @@ describe('application routing and critical interactions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add to cart' }))
     expect(await screen.findByText('1', { selector: '.MuiBadge-badge' })).toBeInTheDocument()
     expect(screen.getByRole('searchbox', { name: /search products/i })).toBeInTheDocument()
+  })
+
+  it('lets an authenticated customer update and remove a cart item', async () => {
+    const customer = { id: '01CUSTOMER', name: 'Customer', email: 'customer@example.test', role: 'customer' }
+    let cart = customerCart()
+    mockApi(customer)
+    const fallback = fetch
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const method = init?.method?.toUpperCase() ?? 'GET'
+      if (url.endsWith('/cart') && method === 'GET') return response(cart)
+      if (url.endsWith(`/cart/items/${product.id}`) && method === 'PUT') {
+        cart = customerCart(Number(JSON.parse(String(init?.body)).quantity))
+        return response(cart)
+      }
+      if (url.endsWith(`/cart/items/${product.id}`) && method === 'DELETE') {
+        cart = { ...customerCart(), lines: [], subtotal: '0.00', total: '0.00' }
+        return response(cart)
+      }
+      return fallback(input, init)
+    }))
+    renderApp('/cart')
+
+    const quantity = await screen.findByRole('spinbutton', { name: `Quantity for ${product.name}` })
+    fireEvent.change(quantity, { target: { value: '2' } })
+
+    await waitFor(() => expect(quantity).toHaveValue(2))
+    expect(screen.getAllByText('USD 498.00')).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(await screen.findByRole('heading', { name: 'Your cart is empty' })).toBeVisible()
+  })
+
+  it('keeps the confirmed authenticated cart state when a quantity update is rejected', async () => {
+    const customer = { id: '01CUSTOMER', name: 'Customer', email: 'customer@example.test', role: 'customer' }
+    mockApi(customer)
+    const fallback = fetch
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const method = init?.method?.toUpperCase() ?? 'GET'
+      if (url.endsWith('/cart') && method === 'GET') return response(customerCart())
+      if (url.endsWith(`/cart/items/${product.id}`) && method === 'PUT') {
+        return response({
+          title: 'Validation failed',
+          detail: 'The quantity may not exceed the current stock limit of 5.',
+          code: 'validation_error',
+          errors: { quantity: ['The quantity may not exceed the current stock limit of 5.'] },
+        }, 422)
+      }
+      return fallback(input, init)
+    }))
+    renderApp('/cart')
+
+    const quantity = await screen.findByRole('spinbutton', { name: `Quantity for ${product.name}` })
+    fireEvent.change(quantity, { target: { value: '6' } })
+
+    expect(await screen.findByText(/Please correct the following fields/)).toBeVisible()
+    await waitFor(() => expect(quantity).toHaveValue(1))
+    expect(screen.getAllByText('USD 249.00')).toHaveLength(2)
   })
 
   it('claims a paid guest order using only the password accepted by the API', async () => {
