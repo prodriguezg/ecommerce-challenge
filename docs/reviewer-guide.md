@@ -10,7 +10,7 @@ for an isolated development machine only.
 
 - Git
 - Docker Engine with Compose v2
-- Free host port `8080`
+- Free host ports `8080` for the application and `8081` for phpMyAdmin
 - At least 6 GB of free disk space for images, dependencies, and test artifacts
 
 From a fresh clone:
@@ -318,10 +318,15 @@ The final `down --volumes` is destructive only to the explicitly named
 ```bash
 export COMPOSE_PROJECT_NAME=ecommerce-e2e
 export FRONTEND_PORT=8081
+export PHPMYADMIN_PORT=8082
 docker compose -f compose.yaml -f compose.e2e.yaml up --detach --build --wait
 E2E_BASE_URL=http://localhost:8081 npm run test:e2e
 docker compose -f compose.yaml -f compose.e2e.yaml down --volumes
 ```
+
+The explicit phpMyAdmin override avoids colliding with the browser stack's
+frontend port. The payment API, MySQL, and Redis remain internal to the Compose
+network.
 
 Playwright covers desktop/mobile critical journeys, keyboard behavior, and
 serious/critical axe findings. Failures retain bounded screenshots, traces, and

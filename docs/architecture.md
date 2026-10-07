@@ -15,16 +15,22 @@ The architecture favors correctness and reviewability over speculative scale. Pr
 ```text
 /
 |-- apps/
+|   `-- frontend/           React/TypeScript/Vite application
+|-- services/
 |   |-- commerce-api/       Laravel commerce API and reservation command
-|   |-- payments-api/       Laravel mock provider and queue worker
-|   `-- web/                React/TypeScript/Vite application
+|   `-- payment-api/        Laravel mock provider and queue worker
+|-- packages/
+|   `-- api-client/         Generated TypeScript API client and types
 |-- docs/
 |   |-- decisions/          Focused architecture decision records
 |   |-- examples/           Challenge-provided CSV sample
 |   `-- ...                 Product, data, API, testing, and security specs
 |-- openapi/
-|   `-- commerce-api.yaml   Authoritative design-first REST contract
+|   |-- commerce-api.yaml   Authoritative commerce REST contract
+|   `-- payment-api.yaml    Authoritative mock-provider REST contract
 |-- docker/                 Container configuration and entrypoints
+|-- compose.e2e.yaml        Deterministic browser-test overrides
+|-- compose.host.yaml       Loopback ports for host-native development
 |-- compose.yaml
 |-- package.json            npm workspace and repository scripts
 `-- README.md

@@ -16,6 +16,43 @@ This repository contains a complete local demonstration of the e-commerce code c
 | Decisions and alternatives | Product specification, architecture document, and focused ADRs under `docs/` |
 | Local instructions | Target reviewer and host-native workflows below |
 
+## Approach, decisions, and alternatives
+
+- **Modular monolith with explicit runtime boundaries:** the commerce domain stays
+  in one Laravel application, while the React frontend, mock payment provider,
+  reservation scheduler, MySQL, and Redis run as separate Compose services. A
+  single full-stack container was simpler, but would hide the integration and
+  worker boundaries; independent business microservices were unnecessary for the
+  challenge scope.
+- **Laravel, React, and MySQL:** Laravel provides conventional validation,
+  authorization, transaction, and testing patterns; React keeps the required UI
+  independent; and MySQL/InnoDB provides the constraints and row locking needed
+  for checkout concurrency. SQLite remains useful for fast tests but is not used
+  to prove production-like locking behavior.
+- **Transactional inventory reservations:** checkout reserves the complete cart
+  atomically while asynchronous payment is pending. Deducting stock only after
+  payment would permit overselling, while reserving on add-to-cart would hold
+  inventory too early.
+- **Separate asynchronous payment mock:** the provider accepts only documented
+  test numbers and sends delayed, authenticated callbacks through a Redis-backed
+  queue. A synchronous fake would be smaller, but would not exercise idempotency,
+  expiry, late success, or manual-review behavior.
+- **Bounded synchronous CSV import:** whole-file failures are separated from
+  independently committed row results, with rejected rows available for
+  correction. A durable asynchronous import pipeline is the production path, but
+  is not justified for the bounded local demonstration.
+- **MySQL-backed product search:** database search keeps the reviewer environment
+  self-contained. Elasticsearch and Redis caching should be evaluated only after
+  catalog size, relevance, traffic, and invalidation requirements are known.
+- **Design-first REST and same-origin sessions:** versioned OpenAPI contracts
+  generate frontend types, while an Nginx proxy keeps the SPA and Sanctum cookie
+  flow on one origin. GraphQL and browser-managed bearer tokens add flexibility
+  that the single first-party browser client does not need.
+
+The detailed consequences and alternatives are recorded in the
+[architecture decision records](docs/decisions/README.md), with implementation
+evidence in the [requirements traceability matrix](docs/requirements-traceability.md).
+
 ## Documentation
 
 - [Product requirements](docs/product-requirements.md)
@@ -28,6 +65,16 @@ This repository contains a complete local demonstration of the e-commerce code c
 - [Requirements traceability](docs/requirements-traceability.md)
 - [Security specification](docs/security.md)
 - [Architecture decision records](docs/decisions/README.md)
+
+## Feature and defect tracking
+
+[GitHub Issues](https://github.com/prodriguezg/ecommerce-challenge/issues) is the
+project register for known defects, observed failures, and proposed features.
+Issues distinguish required corrections from optional enhancements and include
+their acceptance criteria and verification plans. Demo limitations and unresolved
+production-readiness work remain documented in the
+[reviewer guide](docs/reviewer-guide.md#demo-limitations-and-production-gaps) and
+[security specification](docs/security.md#15-pre-production-security-gate).
 
 ## Example CSV
 

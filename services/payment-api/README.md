@@ -1,58 +1,83 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Payment Mock API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This Laravel service simulates an external payment provider. It accepts only the
+documented test numbers, returns `202 Accepted`, queues a delayed outcome in
+Redis, and delivers an authenticated webhook to the commerce API. The delay and
+outcome mappings make pending, decline, provider-error, reservation-expiry,
+late-success, and manual-review paths reproducible without a real payment
+provider.
 
-## About Laravel
+The service contract is maintained in
+[`../../openapi/payment-api.yaml`](../../openapi/payment-api.yaml). In the
+canonical Compose stack the API is internal at `payment-api:8000`; it is not
+published to the host. Its liveness and readiness endpoints are `/health/live`
+and `/health/ready`, and readiness requires Redis plus a recent queue-worker
+heartbeat.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Run the complete application
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Use the repository-level workflow:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+cp .env.example .env
+docker compose up --detach --build --wait
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The payment container uses Supervisor to run the Laravel HTTP server and Redis
+queue worker together. This is an intentional mock-only simplification. Redis
+persistence is disabled, so restarting Redis or the payment service may lose
+pending callbacks and mock idempotency state.
 
-## Contributing
+See the [reviewer and operator guide](../../docs/reviewer-guide.md) for service
+addresses, fake payment numbers, timing controls, and the complete checkout and
+manual-review walkthrough.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Host-native development
 
-## Code of Conduct
+The complete host-native workflow is documented in the
+[reviewer guide](../../docs/reviewer-guide.md#host-native-setup). Its service
+configuration starts from [`.env.example`](.env.example), uses Redis on
+`127.0.0.1:6379`, calls commerce on `127.0.0.1:8000`, and serves the mock API on
+`127.0.0.1:8001`:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+composer install --no-interaction --working-dir=services/payment-api
+cp services/payment-api/.env.example services/payment-api/.env
+php services/payment-api/artisan key:generate --no-interaction
+php services/payment-api/artisan serve --host=127.0.0.1 --port=8001
+```
 
-## Security Vulnerabilities
+Run the queue worker in another terminal:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php services/payment-api/artisan queue:work redis --sleep=1 --tries=4 --timeout=10
+```
 
-## License
+## Verification
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+From the repository root:
+
+```bash
+composer test --working-dir=services/payment-api -- --compact
+services/payment-api/vendor/bin/phpstan analyse --configuration=services/payment-api/phpstan.neon --memory-limit=1G
+services/payment-api/vendor/bin/pint --test
+```
+
+Contract generation, Compose validation, browser journeys, and the complete check
+matrix are documented in the
+[reviewer guide](../../docs/reviewer-guide.md#verification-command-matrix).
+
+## Safety and limitations
+
+- The accepted numbers are test identifiers only. Never submit real payment
+  information.
+- The shared webhook bearer token, ephemeral queue/state, and combined API/worker
+  container are explicitly non-production choices.
+- A production provider integration requires durable reconciliation, secret
+  management, stronger callback authentication, operational monitoring, and
+  refund/cancellation workflows.
+
+The design rationale is recorded in
+[ADR-004](../../docs/decisions/ADR-004-asynchronous-payment-mock.md), with the
+remaining security and operational gaps in the
+[security specification](../../docs/security.md).
