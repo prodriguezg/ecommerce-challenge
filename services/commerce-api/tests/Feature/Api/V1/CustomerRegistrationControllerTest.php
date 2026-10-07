@@ -27,6 +27,16 @@ class CustomerRegistrationControllerTest extends TestCase
             'name' => 'Customer One',
             'email' => 'customer@example.com',
             'role' => 'customer',
+            'default_address' => [
+                'name' => 'Customer One',
+                'line1' => '123 Example Street',
+                'line2' => 'Apartment 4',
+                'city' => 'Montevideo',
+                'region' => 'Montevideo',
+                'postal_code' => '11000',
+                'country' => 'UY',
+                'phone' => '+598 91 234 567',
+            ],
         ]);
         $this->assertAuthenticatedAs($customer);
         $this->assertDatabaseHas('addresses', [

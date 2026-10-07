@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\Address;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -82,6 +83,56 @@ class AuthenticationControllerTest extends TestCase
             ->assertUnauthorized()
             ->assertHeader('content-type', 'application/problem+json')
             ->assertJsonPath('code', 'unauthenticated');
+    }
+
+    public function test_customer_principal_includes_only_the_owned_default_address(): void
+    {
+        $customer = User::factory()->create();
+        Address::factory()->for($customer)->create([
+            'recipient_name' => 'Not the default',
+            'is_default' => false,
+        ]);
+        Address::factory()->for($customer)->create([
+            'recipient_name' => 'Customer Recipient',
+            'line_1' => '123 Stored Street',
+            'line_2' => null,
+            'city' => 'Montevideo',
+            'region' => 'Montevideo',
+            'postal_code' => '11000',
+            'country_code' => 'UY',
+            'phone' => '+598 91 234 567',
+            'is_default' => true,
+        ]);
+        Address::factory()->create([
+            'recipient_name' => 'Another Customer',
+            'is_default' => true,
+        ]);
+
+        $this->actingAs($customer)
+            ->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('default_address.name', 'Customer Recipient')
+            ->assertJsonPath('default_address.line1', '123 Stored Street')
+            ->assertJsonPath('default_address.city', 'Montevideo')
+            ->assertJsonPath('default_address.region', 'Montevideo')
+            ->assertJsonPath('default_address.postal_code', '11000')
+            ->assertJsonPath('default_address.country', 'UY')
+            ->assertJsonPath('default_address.phone', '+598 91 234 567')
+            ->assertJsonMissingPath('default_address.line2');
+    }
+
+    public function test_administrator_principal_never_includes_customer_address_data(): void
+    {
+        $administrator = User::factory()->admin()->create();
+        Address::factory()->for($administrator)->create([
+            'recipient_name' => 'Should stay private',
+            'is_default' => true,
+        ]);
+
+        $this->actingAs($administrator)
+            ->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonMissingPath('default_address');
     }
 
     public function test_login_rate_limit_returns_problem_details_with_429(): void
