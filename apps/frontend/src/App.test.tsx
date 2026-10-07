@@ -138,6 +138,73 @@ describe('application routing and critical interactions', () => {
     expect(screen.getAllByText('USD 249.00')).toHaveLength(2)
   })
 
+  it('prefills customer checkout from the default address and submits edited snapshot values', async () => {
+    const defaultAddress = {
+      name: 'Stored Recipient',
+      line1: '39 Cart Avenue',
+      line2: 'Unit 7',
+      city: 'Montevideo',
+      region: 'Montevideo',
+      postal_code: '11000',
+      country: 'UY',
+      phone: '+598 0000 0039',
+    }
+    const customer = { id: '01CUSTOMER', name: 'Customer', email: 'customer@example.test', role: 'customer', default_address: defaultAddress }
+    let submittedCheckout: Record<string, unknown> | null = null
+    mockApi(customer)
+    const fallback = fetch
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const method = init?.method?.toUpperCase() ?? 'GET'
+      if (url.endsWith('/cart') && method === 'GET') return response(customerCart())
+      if (url.endsWith('/shipping-methods')) return response([{ id: '01SHIPPING', name: 'Ground', amount: '15.00', currency: 'USD', tax_id: null, active: true, version: 1 }])
+      if (url.endsWith('/cart/quote')) return response({ ...customerCart(), shipping: '15.00', total: '264.00' })
+      if (url.endsWith('/checkouts') && method === 'POST') {
+        submittedCheckout = JSON.parse(String(init?.body)) as Record<string, unknown>
+        return response({
+          order: {
+            id: '01TESTORDER000000000000000',
+            number: 'ORD-100001',
+            status: 'awaiting_payment',
+            payment_status: 'pending',
+            lines: customerCart().lines,
+            total: '264.00',
+            currency: 'USD',
+            shipping_address: submittedCheckout.shipping_address,
+            version: 1,
+            created_at: '2026-10-06T00:00:00Z',
+            updated_at: '2026-10-06T00:00:00Z',
+          },
+        }, 202)
+      }
+      if (url.includes('/orders/01TESTORDER000000000000000/status')) return response({ order_id: '01TESTORDER000000000000000', status: 'paid', payment_status: 'succeeded', updated_at: '2026-10-06T00:00:01Z' })
+      return fallback(input, init)
+    }))
+
+    renderApp('/checkout')
+
+    expect(await screen.findByLabelText(/Email address/)).toHaveValue('customer@example.test')
+    expect(screen.getByLabelText(/Recipient name/)).toHaveValue('Stored Recipient')
+    expect(screen.getByLabelText(/Address line 1/)).toHaveValue('39 Cart Avenue')
+    expect(screen.getByLabelText(/Address line 2/)).toHaveValue('Unit 7')
+    expect(screen.getByLabelText(/City/)).toHaveValue('Montevideo')
+    expect(screen.getByLabelText(/State or region/)).toHaveValue('Montevideo')
+    expect(screen.getByLabelText(/Postal code/)).toHaveValue('11000')
+    expect(screen.getByLabelText(/Country code/)).toHaveValue('UY')
+    expect(screen.getByLabelText(/Phone/)).toHaveValue('+598 0000 0039')
+
+    fireEvent.change(screen.getByLabelText(/Address line 1/), { target: { value: '40 Checkout Avenue' } })
+    fireEvent.change(screen.getByLabelText(/Test card number/), { target: { value: '4000000000010001' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Place order (simulated)' }))
+
+    await waitFor(() => expect(submittedCheckout).not.toBeNull())
+    expect(submittedCheckout).toMatchObject({
+      email: 'customer@example.test',
+      shipping_address: { ...defaultAddress, line1: '40 Checkout Avenue' },
+    })
+    expect(defaultAddress.line1).toBe('39 Cart Avenue')
+  })
+
   it('claims a paid guest order using only the password accepted by the API', async () => {
     mockApi()
     const fallback = fetch
@@ -202,6 +269,8 @@ describe('application routing and critical interactions', () => {
     expect(screen.queryByText('Tax', { exact: true })).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: `USD ${total}` })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Place order (simulated)' })).toBeEnabled()
+    expect(screen.getByLabelText(/Recipient name/)).toHaveValue('')
+    expect(screen.getByLabelText(/Address line 1/)).toHaveValue('')
   })
 
   it('routes the sole first-run state to administrator setup', async () => {

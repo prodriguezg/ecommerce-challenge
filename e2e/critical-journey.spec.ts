@@ -135,17 +135,35 @@ test.describe.serial('critical commerce journey', () => {
     await page.getByRole('link', { name: /Cart/ }).click()
     await page.getByRole('link', { name: 'Review checkout' }).click()
     await expect(page.getByLabel('Email address')).toHaveValue('customer-e2e@example.test')
-    await page.getByLabel('Recipient name').fill('Customer E2E')
-    await page.getByLabel('Address line 1').fill('39 Cart Avenue')
-    await page.getByLabel('City').fill('Montevideo')
-    await page.getByLabel('State or region').fill('Montevideo')
-    await page.getByLabel('Postal code').fill('11000')
-    await page.getByLabel('Country code').fill('UY')
-    await page.getByLabel('Phone').fill('+598 0000 0039')
+    await expect(page.getByLabel('Recipient name')).toHaveValue('Customer E2E')
+    await expect(page.getByLabel('Address line 1')).toHaveValue('39 Cart Avenue')
+    await expect(page.getByLabel('City')).toHaveValue('Montevideo')
+    await expect(page.getByLabel('State or region')).toHaveValue('Montevideo')
+    await expect(page.getByLabel('Postal code')).toHaveValue('11000')
+    await expect(page.getByLabel('Country code')).toHaveValue('UY')
+    await expect(page.getByLabel('Phone')).toHaveValue('+598 0000 0039')
+    await page.getByLabel('Address line 1').fill('40 Checkout Avenue')
     await page.getByLabel('Test card number').fill('4000000000010001')
     await page.getByRole('button', { name: 'Place order (simulated)' }).click()
 
     await expect(page).toHaveURL(/\/orders\//)
+    const orderId = new URL(page.url()).pathname.split('/').at(-1)
+    const checkoutAddresses = await page.evaluate(async (id) => {
+      const [orderResponse, principalResponse] = await Promise.all([
+        fetch(`/api/v1/orders/${id}`, { credentials: 'include' }),
+        fetch('/api/v1/auth/me', { credentials: 'include' }),
+      ])
+      return {
+        orderOk: orderResponse.ok,
+        order: await orderResponse.json(),
+        principalOk: principalResponse.ok,
+        principal: await principalResponse.json(),
+      }
+    }, orderId)
+    expect(checkoutAddresses.orderOk).toBe(true)
+    expect(checkoutAddresses.order.shipping_address.line1).toBe('40 Checkout Avenue')
+    expect(checkoutAddresses.principalOk).toBe(true)
+    expect(checkoutAddresses.principal.default_address.line1).toBe('39 Cart Avenue')
     await page.getByRole('link', { name: /Cart/ }).click()
     await expect(page.getByRole('heading', { name: 'Your cart is empty' })).toBeVisible()
     await page.reload()

@@ -892,6 +892,7 @@ export interface components {
             email: string;
             /** @enum {string} */
             role: "admin" | "customer";
+            default_address?: components["schemas"]["Address"];
         };
         Category: {
             id: components["schemas"]["Ulid"];

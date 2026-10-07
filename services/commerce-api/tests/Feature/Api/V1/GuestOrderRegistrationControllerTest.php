@@ -35,6 +35,16 @@ class GuestOrderRegistrationControllerTest extends TestCase
             'name' => 'Guest Buyer',
             'email' => 'guest@example.test',
             'role' => 'customer',
+            'default_address' => [
+                'name' => 'Guest Buyer',
+                'line1' => '1 Main Street',
+                'line2' => 'Unit 2',
+                'city' => 'Montevideo',
+                'region' => 'Montevideo',
+                'postal_code' => '11000',
+                'country' => 'UY',
+                'phone' => '+598 1 234 567',
+            ],
         ]);
         $this->assertAuthenticatedAs($customer);
         $this->assertDatabaseHas('addresses', [
