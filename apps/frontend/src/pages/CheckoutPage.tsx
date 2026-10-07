@@ -40,7 +40,7 @@ export function CheckoutPage() {
     const input: CheckoutInput = { email: String(data.get('email')), shipping_address: addressFrom(data), shipping_method_id: shippingMethod, lines: cartLines, payment_test_number: String(data.get('payment_test_number')) as CheckoutInput['payment_test_number'] }
     try {
       const result = await api<CheckoutResult>('/checkouts', { method: 'POST', headers: { 'Idempotency-Key': `web-${crypto.randomUUID()}` }, body: JSON.stringify(input) })
-      if (!principal) clearAfterCheckout()
+      clearAfterCheckout()
       const guestUrl = result.guest_order_url ? new URL(result.guest_order_url, window.location.origin) : null
       const token = guestUrl?.searchParams.get('guest_token')
       navigate(`/orders/${result.order.id}${token ? `?guest_token=${encodeURIComponent(token)}` : ''}`, { state: { initialOrder: result.order } })

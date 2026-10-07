@@ -9,8 +9,8 @@ type CartContextValue = {
   notice: string
   count: number
   add: (product: Product) => Promise<void>
-  setQuantity: (product: Product, quantity: number) => Promise<void>
-  remove: (product: Product) => Promise<void>
+  setQuantity: (productId: string, quantity: number) => Promise<void>
+  remove: (productId: string) => Promise<void>
   mergeGuestCart: () => Promise<void>
   clearAfterCheckout: () => void
 }
@@ -42,23 +42,33 @@ export function CartProvider({ children }: PropsWithChildren) {
     else queueMicrotask(() => setServerCart(null))
   }, [principal])
 
-  const setQuantity = useCallback(async (product: Product, quantity: number) => {
+  const setQuantity = useCallback(async (productId: string, quantity: number) => {
     if (quantity <= 0) {
-      if (principal?.role === 'customer') setServerCart(await api<Cart>(`/cart/items/${product.id}`, { method: 'DELETE' }))
-      else setLines((current) => current.filter((line) => line.product.id !== product.id))
+      if (principal?.role === 'customer') setServerCart(await api<Cart>(`/cart/items/${productId}`, { method: 'DELETE' }))
+      else setLines((current) => current.filter((line) => line.product.id !== productId))
       return
     }
     if (principal?.role === 'customer') {
-      setServerCart(await api<Cart>(`/cart/items/${product.id}`, { method: 'PUT', body: JSON.stringify({ quantity }) }))
+      setServerCart(await api<Cart>(`/cart/items/${productId}`, { method: 'PUT', body: JSON.stringify({ quantity }) }))
     } else {
-      setLines((current) => {
-        const found = current.find((line) => line.product.id === product.id)
-        return found
-          ? current.map((line) => line.product.id === product.id ? { ...line, quantity } : line)
-          : [...current, { product, quantity }]
-      })
+      setLines((current) => current.map((line) => line.product.id === productId ? { ...line, quantity } : line))
     }
   }, [principal])
+
+  const add = useCallback(async (product: Product) => {
+    if (principal?.role === 'customer') {
+      const quantity = (serverCart?.lines.find((line) => line.product_id === product.id)?.quantity ?? 0) + 1
+      setServerCart(await api<Cart>(`/cart/items/${product.id}`, { method: 'PUT', body: JSON.stringify({ quantity }) }))
+      return
+    }
+
+    setLines((current) => {
+      const found = current.find((line) => line.product.id === product.id)
+      return found
+        ? current.map((line) => line.product.id === product.id ? { ...line, quantity: line.quantity + 1 } : line)
+        : [...current, { product, quantity: 1 }]
+    })
+  }, [principal, serverCart])
 
   const mergeGuestCart = useCallback(async () => {
     const guestLines: CartLineInput[] = lines.map(({ product, quantity }) => ({ product_id: product.id, quantity }))
@@ -75,17 +85,22 @@ export function CartProvider({ children }: PropsWithChildren) {
     ? serverCart?.lines.reduce((total, line) => total + line.quantity, 0) ?? 0
     : lines.reduce((total, line) => total + line.quantity, 0)
 
+  const clearAfterCheckout = useCallback(() => {
+    setLines([])
+    setServerCart(null)
+  }, [])
+
   const value = useMemo<CartContextValue>(() => ({
     lines,
     serverCart,
     notice,
     count,
-    add: async (product) => setQuantity(product, (lines.find((line) => line.product.id === product.id)?.quantity ?? 0) + 1),
+    add,
     setQuantity,
-    remove: async (product) => setQuantity(product, 0),
+    remove: async (productId) => setQuantity(productId, 0),
     mergeGuestCart,
-    clearAfterCheckout: () => setLines([]),
-  }), [count, lines, mergeGuestCart, notice, serverCart, setQuantity])
+    clearAfterCheckout,
+  }), [add, clearAfterCheckout, count, lines, mergeGuestCart, notice, serverCart, setQuantity])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
