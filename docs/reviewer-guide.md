@@ -50,10 +50,13 @@ curl --fail http://localhost:8080/api/v1/health/ready
 | Interactive commerce API docs | <http://localhost:8080/api/docs> | Available only when `API_DOCS_ENABLED=true` |
 | Payment mock | Internal `payment-api:8000`; deliberately not published | `/health/live`, `/health/ready` inside the container |
 | MySQL | Internal `mysql:3306` | Compose health check |
+| phpMyAdmin | <http://localhost:8081> (loopback only) | Uses the internal `mysql:3306` service |
 | Redis | Internal `redis:6379` | Compose health check |
 
-The canonical stack exposes only the frontend. Use `compose.host.yaml` only for
-host-native development; it binds MySQL and Redis to loopback.
+The canonical stack exposes the frontend and a loopback-only phpMyAdmin UI. Log
+in to phpMyAdmin with `MYSQL_USER` and `MYSQL_PASSWORD` from `.env`, or with the
+configured root credentials. Use `compose.host.yaml` only for host-native
+development; it additionally binds MySQL and Redis to loopback.
 
 ### Stop, inspect, and reset
 
@@ -136,6 +139,7 @@ new reservations and can be removed to return to the environment value.
 | Setting | Local default | Meaning |
 | --- | ---: | --- |
 | `FRONTEND_PORT` | `8080` | Published Compose application port |
+| `PHPMYADMIN_PORT` | `8081` | Loopback-only phpMyAdmin port |
 | `MYSQL_HOST_PORT`, `REDIS_HOST_PORT` | `3306`, `6379` | Loopback ports used only with `compose.host.yaml` |
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` | local-only values | MySQL bootstrap credentials; replace outside local use |
 | `COMMERCE_APP_KEY`, `PAYMENT_APP_KEY` | deterministic local-only keys | Laravel encryption keys; generate unique keys outside this demo |

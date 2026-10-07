@@ -1,6 +1,6 @@
 # E-commerce Code Challenge
 
-This repository contains a complete local demonstration of the e-commerce code challenge. Docker Compose starts the React storefront/admin application, Laravel commerce API, Laravel mock payment API and queue worker, MySQL, Redis, and a separate reservation-expiration worker.
+This repository contains a complete local demonstration of the e-commerce code challenge. Docker Compose starts the React storefront/admin application, Laravel commerce API, Laravel mock payment API and queue worker, MySQL, a local phpMyAdmin interface, Redis, and a separate reservation-expiration worker.
 
 ## Challenge coverage
 
@@ -64,7 +64,7 @@ The foundation uses Laravel 13 on PHP 8.5, React 19, TypeScript 5.9, Vite 8, MyS
 
 ## Reviewer workflow
 
-Prerequisites are Docker Engine with Compose v2, Git, and free host ports `8080` (the application). From a fresh clone:
+Prerequisites are Docker Engine with Compose v2, Git, and free host ports `8080` (the application) and `8081` (phpMyAdmin). From a fresh clone:
 
 ```bash
 cp .env.example .env
@@ -76,10 +76,11 @@ Open <http://localhost:8080>. A clean database redirects the first visit to `/se
 Service boundaries are intentionally narrow:
 
 - Frontend: <http://localhost:8080>; health: `/health`.
+- phpMyAdmin: <http://localhost:8081>; connect with `MYSQL_USER` and `MYSQL_PASSWORD` from `.env` (or the root credentials).
 - Commerce API: proxied through `/api`; liveness/readiness: `/api/v1/health/live` and `/api/v1/health/ready`.
 - Interactive commerce API documentation: <http://localhost:8080/api/docs> when `API_DOCS_ENABLED=true` (the local default). Disable it in production-like environments.
 - Payment API: internal-only port `8000`; liveness/readiness are `/health/live` and `/health/ready` inside its container. Readiness requires Redis and a recent queue-worker heartbeat.
-- MySQL and Redis are internal-only in the canonical Compose stack.
+- MySQL and Redis are internal-only in the canonical Compose stack. phpMyAdmin is published on loopback only.
 
 Stop containers while preserving data with `docker compose down`. The following explicit reset is destructive and removes the database and product-media volumes:
 
