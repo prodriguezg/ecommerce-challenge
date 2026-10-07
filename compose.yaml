@@ -165,6 +165,21 @@ services:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
 
+  phpmyadmin:
+    image: phpmyadmin:5.2.2-apache
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+      PMA_ARBITRARY: 1
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PHPMYADMIN_PORT:-8081}:80"
+    restart: unless-stopped
+
   redis:
     image: redis:8.4.7-alpine3.22
     command: ["redis-server", "--save", "", "--appendonly", "no"]
