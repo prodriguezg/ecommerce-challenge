@@ -62,6 +62,26 @@ const paymentInventory = {
 const httpMethods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'])
 const mutationMethods = new Set(['post', 'put', 'patch'])
 
+function validateDocumentationContentSecurityPolicy() {
+  const documentation = readFileSync('services/commerce-api/public/api-docs.html', 'utf8')
+  const nginxConfiguration = readFileSync('docker/frontend/nginx.conf', 'utf8')
+  const requiredSources = [
+    ...documentation.matchAll(/<(?:script|link)[^>]+(?:src|href)="(https:\/\/[^/"]+)/g),
+  ].map((match) => match[1])
+
+  requiredSources.push('https://fonts.gstatic.com', 'https://cdn.redoc.ly')
+
+  for (const source of new Set(requiredSources)) {
+    if (!nginxConfiguration.includes(source)) {
+      throw new Error(`The API documentation CSP does not allow its required source: ${source}`)
+    }
+  }
+
+  if (!nginxConfiguration.includes('worker-src blob:')) {
+    throw new Error('The API documentation CSP does not allow the Redoc web worker.')
+  }
+}
+
 function resolveReference(document, value) {
   let resolved = value
   const visited = new Set()
@@ -201,4 +221,5 @@ function validateDocument(file, expectedInventory, service) {
 
 validateDocument('openapi/commerce-api.yaml', commerceInventory, 'commerce-api')
 validateDocument('openapi/payment-api.yaml', paymentInventory, 'payment-api')
+validateDocumentationContentSecurityPolicy()
 console.log('OpenAPI inventories match Laravel routes; errors and mutation schemas are valid.')
