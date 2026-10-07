@@ -65,10 +65,10 @@ function GuestRegistration({ orderId, token, onComplete }: { orderId: string; to
     event.preventDefault(); setError(null)
     const data = new FormData(event.currentTarget as HTMLFormElement)
     try {
-      await api<Principal>(`/guest-orders/${orderId}/register${queryString({ guest_token: token })}`, { method: 'POST', body: JSON.stringify({ name: data.get('name'), password: data.get('password') }) })
+      await api<Principal>(`/guest-orders/${orderId}/register${queryString({ guest_token: token })}`, { method: 'POST', body: JSON.stringify({ password: data.get('password') }) })
       setDone(true); onComplete()
     } catch (requestError) { setError(requestError) }
   }
   if (done) return <Alert severity="success">Account created. This private guest link is now revoked; use your account to view the order.</Alert>
-  return <Box sx={{ bgcolor: '#f5f8fc', border: 1, borderColor: 'divider', p: 3 }}><Typography variant="h3">Create an account (optional)</Typography><Typography color="text.secondary" sx={{ my: 1 }}>Save this order to a new customer account.</Typography><Stack component="form" onSubmit={(event) => void submit(event)} gap={2}><ValidationSummary error={error} />{error ? <ErrorNotice error={error} /> : null}<TextField required label="Full name" name="name" /><TextField required helperText="At least 10 characters with uppercase, number, and symbol." label="Create a password" name="password" type="password" /><Button type="submit" variant="contained">Create account and claim order</Button></Stack></Box>
+  return <Box sx={{ bgcolor: '#f5f8fc', border: 1, borderColor: 'divider', p: 3 }}><Typography variant="h3">Create an account (optional)</Typography><Typography color="text.secondary" sx={{ my: 1 }}>Save this order to a new customer account using the name and email from checkout.</Typography><Stack component="form" onSubmit={(event) => void submit(event)} gap={2}><ValidationSummary error={error} />{error ? <ErrorNotice error={error} /> : null}<TextField required helperText="At least 10 characters with uppercase, number, and symbol." label="Create a password" name="password" type="password" /><Button type="submit" variant="contained">Create account and claim order</Button></Stack></Box>
 }

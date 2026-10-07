@@ -65,6 +65,43 @@ describe('application routing and critical interactions', () => {
     expect(screen.getByRole('searchbox', { name: /search products/i })).toBeInTheDocument()
   })
 
+  it('claims a paid guest order using only the password accepted by the API', async () => {
+    mockApi()
+    const fallback = fetch
+    const order = {
+      id: '01TESTORDER000000000000000',
+      number: 'ORD-100001',
+      status: 'paid',
+      payment_status: 'succeeded',
+      lines: [{ product_id: product.id, name: product.name, quantity: 1, unit_price: product.price, line_subtotal: product.price, currency: 'USD', available: true, stock_limit: 1 }],
+      total: product.price,
+      currency: 'USD',
+      shipping_address: { name: 'Guest Buyer', line1: '1 Main Street', city: 'Montevideo', region: 'Montevideo', postal_code: '11000', country: 'UY', phone: '+598 1 234 567' },
+      version: 1,
+      created_at: '2026-10-06T00:00:00Z',
+      updated_at: '2026-10-06T00:00:00Z',
+    }
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.includes(`/guest-orders/${order.id}/status`)) return response({ order_id: order.id, status: 'paid', payment_status: 'succeeded', updated_at: order.updated_at })
+      if (url.includes(`/guest-orders/${order.id}/register`)) return response({ id: '01CUSTOMER', name: 'Guest Buyer', email: 'guest@example.test', role: 'customer' }, 201)
+      if (url.includes(`/guest-orders/${order.id}`)) return response(order)
+      return fallback(input, init)
+    }))
+
+    renderApp(`/orders/${order.id}?guest_token=${'a'.repeat(64)}`)
+
+    expect(await screen.findByRole('heading', { name: 'Create an account (optional)' })).toBeVisible()
+    expect(screen.queryByRole('textbox', { name: 'Full name' })).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/Create a password/), { target: { value: 'SecurePass1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create account and claim order' }))
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/guest-orders/${order.id}/register`),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ password: 'SecurePass1!' }) }),
+    ))
+  })
+
   it.each([
     { productTax: '0.00', shippingTax: '1.50', tax: '1.50', total: '50.99' },
     { productTax: '3.45', shippingTax: '0.00', tax: '3.45', total: '52.94' },

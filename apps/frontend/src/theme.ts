@@ -13,7 +13,7 @@ export const theme = createTheme({
   },
   shape: { borderRadius: 8 },
   typography: {
-    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontFamily: '"Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
     h1: { fontSize: 'clamp(2rem, 4vw, 3.25rem)', fontWeight: 760, letterSpacing: '-0.04em', lineHeight: 1.05 },
     h2: { fontSize: 'clamp(1.65rem, 3vw, 2.25rem)', fontWeight: 740, letterSpacing: '-0.03em' },
     h3: { fontSize: '1.25rem', fontWeight: 700 },

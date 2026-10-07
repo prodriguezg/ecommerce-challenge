@@ -32,7 +32,7 @@ export function StoreShell() {
 
 const adminItems = [
   ['Products', '/admin/products'], ['Categories', '/admin/categories'], ['Taxes', '/admin/taxes'],
-  ['Shipping', '/admin/shipping'], ['Inventory', '/admin/inventory'], ['Imports', '/admin/imports'],
+  ['Shipping', '/admin/shipping'], ['Imports', '/admin/imports'],
   ['Settings', '/admin/settings'], ['Orders', '/admin/orders'], ['Reviews', '/admin/reviews'], ['Audit log', '/admin/audit'],
 ]
 
